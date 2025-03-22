@@ -25,11 +25,38 @@
     h1 {
       margin: 0;
     }
+    nav {
+      background-color: #fff;
+      border-bottom: 2px solid #025928;
+      margin-bottom: 20px;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+    nav li {
+      margin: 0 15px;
+    }
+    nav a {
+      text-decoration: none;
+      color: #025928;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 10px;
+      display: block;
+    }
+    nav a.active {
+      border-bottom: 3px solid #025928;
+    }
     .container {
       background-color: white;
       border-radius: 5px;
       padding: 20px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-height: 300px;
     }
     table {
       width: 100%;
@@ -80,29 +107,110 @@
     .score-even {
       color: #000;
     }
+    /* Hide all tab content by default */
+    .tab-content {
+      display: none;
+    }
+    /* Show active tab content */
+    .tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Masters Tournament Pool Leaderboard</h1>
   </header>
-
+  
+  <!-- Navigation Menu -->
+  <nav>
+    <ul>
+      <li><a href="#" class="nav-link active" data-tab="home">Home</a></li>
+      <li><a href="#" class="nav-link" data-tab="leaderboard">Leaderboard</a></li>
+      <li><a href="#" class="nav-link" data-tab="rules">Rules</a></li>
+    </ul>
+  </nav>
+  
   <div class="container">
-    <div id="leaderboard">
-      <div class="loading">Loading leaderboard data...</div>
+    <!-- Home Tab -->
+    <div id="home" class="tab-content active">
+      <p>Welcome back to the 2025 Masters Pool! Check back here for details on entering.</p>
     </div>
-    <p class="last-updated">
-      Last updated: <span id="update-time">--</span>
-    </p>
+    
+    <!-- Leaderboard Tab -->
+    <div id="leaderboard" class="tab-content">
+      <div id="lb-content">
+        <div class="loading">Loading leaderboard data...</div>
+      </div>
+      <p class="last-updated">Last updated: <span id="update-time">--</span></p>
+    </div>
+    
+    <!-- Rules Tab -->
+    <div id="rules" class="tab-content">
+      <h2>Masters Madness Pool 2025</h2>
+      <p>Welcome back to the inaugural Masters Fantasy Golf Tournament!</p>
+      <h3>Why Your Participation Matters</h3>
+      <p>– TBD –</p>
+      <h3>How It Works</h3>
+      <p><strong>The Tournament Structure:</strong></p>
+      <ul>
+        <li><strong>Selection:</strong> Select 1 golfer from each of the 8 groups.</li>
+        <li><strong>Scoring:</strong> Your team’s scores are aggregated. The scores of your 4 lowest-scoring golfers count towards your total.</li>
+        <li><strong>The Challenge:</strong> If more than 4 of your golfers miss the cut, your team will automatically count the score required to make the weekend cut as a replacement score.
+          <br>(For example, if only 3 of your players make the cut, your team’s 4th score will be filled with the score necessary to make the weekend cut.)</li>
+      </ul>
+      <p><strong>Making Your Picks:</strong></p>
+      <p>Select your team from 8 groups based on performance potential. Each group was created based on odds to win the tournament. Selections can be made at the bottom of the page (Max 2 entries per participant). You will receive an email confirmation acknowledging your picks and can change them at any time up until the deadline.</p>
+      <p><strong>Entry Submission:</strong></p>
+      <ul>
+        <li><strong>Deadline:</strong> ~5am MT, Thursday, April 7th.</li>
+        <li><strong>Entry Fee:</strong> $100 per team, with a maximum of two teams per participant.</li>
+        <li><strong>Payment Methods:</strong> Venmo (@Drake-Fages) or alternative arrangements via contact with Drake @ 951-818-7517.</li>
+      </ul>
+      <p><strong>Payouts and Prizes</strong></p>
+      <ul>
+        <li>Total Prize Money: $1,500.</li>
+        <li>1st Place: $1,000</li>
+        <li>2nd Place: $400</li>
+        <li>3rd Place: $100</li>
+      </ul>
+      <p>Prize money is guaranteed through private underwriting and will be awarded directly to winners. Tiebreakers are in place to ensure a fair and competitive tournament.</p>
+      <p><strong>Extend the Invitation</strong></p>
+      <p>We encourage you to share this unique opportunity with friends and family. Together, we can create an unforgettable experience that benefits an incredible cause.</p>
+      <p>Just share this link: <a href="http://mastersmadness.com" target="_blank">mastersmadness.com</a></p>
+      <p><strong>Thank You</strong></p>
+      <p>Your participation means more than just competing in a fantasy golf tournament; it represents a collective effort to support a deserving family in our community. Thank you for joining us in this meaningful cause.</p>
+      <p>Fill out the form below or <a href="http://mastersmadness.com/enter" target="_blank">click here to enter!</a></p>
+    </div>
   </div>
-
+  
   <script>
-    // Your Google Sheet ID, tab name, and API key.
+    // Navigation: switch between tabs
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Remove active class from all links and hide all tab content
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        
+        // Add active class to clicked link and show the corresponding tab
+        this.classList.add('active');
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+        
+        // If the Leaderboard tab is activated, refresh data.
+        if (tabId === 'leaderboard') {
+          fetchLeaderboardData();
+        }
+      });
+    });
+    
+    // Google Sheets API details
     const SHEET_ID = '1afQSwPf_mbhGe7J906pj0p8gP9Pon1FQedoQJp6hBp4';
     const SHEET_TAB_NAME = '2025 Leaderboard';
     const API_KEY = 'AIzaSyDcMK1A-dAl44BU48eCcg0QeqTlqDZw1uk';
-
-    // Function to fetch data from Google Sheets.
+    
+    // Function to fetch data from Google Sheets
     async function fetchLeaderboardData() {
       try {
         const response = await fetch(
@@ -116,24 +224,21 @@
         updateLastUpdated();
       } catch (error) {
         console.error('Error fetching data:', error);
-        document.getElementById('leaderboard').innerHTML =
+        document.getElementById('lb-content').innerHTML =
           '<div class="error">Error loading leaderboard data. Please try again later.</div>';
       }
     }
-
+    
     // Function to display the leaderboard.
-    // It extracts the following columns from each row:
-    // POS (Column B, index 1), PLAYER (Column D, index 3), SCORE (Column E, index 4)
+    // Extract columns: POS (B, index 1), PLAYER (D, index 3), SCORE (E, index 4)
     function displayLeaderboard(data) {
       if (!data || data.length < 2) {
-        document.getElementById('leaderboard').innerHTML =
+        document.getElementById('lb-content').innerHTML =
           '<div class="error">No data available or invalid data format.</div>';
         return;
       }
-
-      // Skip the header row from the sheet.
+      // Skip the header row.
       const rows = data.slice(1);
-
       let tableHTML = `
         <table>
           <thead>
@@ -144,25 +249,18 @@
             </tr>
           </thead>
           <tbody>`;
-
-      // Function to extract a numeric value from the score string.
-      function extractNumericScore(scoreStr) {
-        if (!scoreStr) return Infinity;
-        const match = scoreStr.match(/-?\d+/);
-        return match ? parseInt(match[0]) : Infinity;
-      }
-
-      // (Optional) If you want to sort rows by score, you can uncomment this:
-      // rows.sort((a, b) => extractNumericScore(a[4]) - extractNumericScore(b[4]));
-
-      rows.forEach((row) => {
-        // Ensure the row has at least 5 columns.
+      
+      // Optional: you can sort rows by score if desired.
+      // rows.sort((a, b) => Number(a[4]) - Number(b[4]));
+      
+      rows.forEach(row => {
+        // Ensure the row has enough columns.
         if (row.length < 5) return;
         const pos = row[1] || "";
         const player = row[3] || "";
         const score = row[4] || "";
-
-        // Determine the score class for styling.
+        
+        // Determine score styling.
         let scoreClass = "score-even";
         const numericScore = Number(score);
         if (!isNaN(numericScore)) {
@@ -172,7 +270,6 @@
             scoreClass = "score-over";
           }
         }
-
         tableHTML += `
           <tr>
             <td>${pos}</td>
@@ -180,14 +277,14 @@
             <td class="${scoreClass}">${score}</td>
           </tr>`;
       });
-
+      
       tableHTML += `
           </tbody>
         </table>`;
-
-      document.getElementById('leaderboard').innerHTML = tableHTML;
+      
+      document.getElementById('lb-content').innerHTML = tableHTML;
     }
-
+    
     // Update the "last updated" timestamp.
     function updateLastUpdated() {
       const now = new Date();
@@ -201,12 +298,18 @@
       };
       document.getElementById('update-time').textContent = now.toLocaleString(undefined, options);
     }
-
-    // Initial load.
-    fetchLeaderboardData();
-
-    // Refresh data every 5 minutes.
-    setInterval(fetchLeaderboardData, 5 * 60 * 1000);
+    
+    // Initial load: if the Leaderboard tab is the default active tab, fetch data.
+    // (In this code, Home is default so you can also fetch immediately if desired.)
+    // Uncomment the following line if you want the Leaderboard to load on page load:
+    // fetchLeaderboardData();
+    
+    // Refresh the Leaderboard data every 5 minutes if that tab is active.
+    setInterval(() => {
+      if (document.getElementById('leaderboard').classList.contains('active')) {
+        fetchLeaderboardData();
+      }
+    }, 5 * 60 * 1000);
   </script>
 </body>
 </html>
