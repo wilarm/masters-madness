@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link href="https://fonts.googleapis.com/css?family=Merriweather&display=swap" rel="stylesheet">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>2025 Masters Pool</title>
+  <title>Masters Tournament Pool Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css?family=Merriweather&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Merriweather', serif;
@@ -59,13 +59,23 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       min-height: 300px;
     }
+    /* Countdown Timer Styles */
+    #countdown-container {
+      text-align: center;
+      margin-bottom: 20px;
+      background-color: #e6f7e9;
+      padding: 15px;
+      border-radius: 5px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #025928;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
     }
-    th,
-    td {
+    th, td {
       padding: 12px 15px;
       text-align: left;
       border-bottom: 1px solid #ddd;
@@ -135,7 +145,11 @@
   <div class="container">
     <!-- Home Tab -->
     <div id="home" class="tab-content active">
-      <p>Welcome back to the 2025 Masters Pool! Check back here for details on entering.</p>
+      <!-- Countdown Timer -->
+      <div id="countdown-container">
+        Picks lock in: <span id="countdown-timer">Loading...</span>
+      </div>
+      <p>Welcome back to the 2025 Masters Pool! Check back here soon for details on entering.</p>
     </div>
     
     <!-- Leaderboard Tab -->
@@ -251,9 +265,6 @@
           </thead>
           <tbody>`;
       
-      // Optional: you can sort rows by score if desired.
-      // rows.sort((a, b) => Number(a[4]) - Number(b[4]));
-      
       rows.forEach(row => {
         // Ensure the row has enough columns.
         if (row.length < 5) return;
@@ -300,10 +311,32 @@
       document.getElementById('update-time').textContent = now.toLocaleString(undefined, options);
     }
     
-    // Initial load: if the Leaderboard tab is the default active tab, fetch data.
-    // (In this code, Home is default so you can also fetch immediately if desired.)
-    // Uncomment the following line if you want the Leaderboard to load on page load:
-    // fetchLeaderboardData();
+    // Countdown Timer Code
+    // Set the deadline for picks lock (adjust the date/time as needed)
+    const picksLockDeadline = new Date("April 7, 2025 05:00:00").getTime();
+    
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = picksLockDeadline - now;
+      
+      // If the countdown is finished, display a message
+      if (distance < 0) {
+        document.getElementById("countdown-timer").innerHTML = "Picks are locked!";
+        clearInterval(countdownInterval);
+        return;
+      }
+      
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      
+      document.getElementById("countdown-timer").innerHTML = 
+        days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
+    }
+    
+    const countdownInterval = setInterval(updateCountdown, 1000);
+    updateCountdown(); // initial call
     
     // Refresh the Leaderboard data every 5 minutes if that tab is active.
     setInterval(() => {
