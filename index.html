@@ -16,37 +16,27 @@
       background-color: #F5F3E8;
     }
     header {
-  /* Replace 'your-image-url.jpg' with the URL of your chosen header image */
-  background: url('header.jpg') no-repeat center center/cover;
-  position: relative;
-  text-align: center;
-  color: white;
-  height: 250px; /* Adjust the height as needed */
-  margin-bottom: 20px;
-}
-
-/* Optional: add a semi-transparent overlay to darken the image for better readability */
-header::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(2, 89, 40, 0.6); /* semi-transparent green overlay */
-  z-index: 1;
-}
-
-/* Make sure the header text is above the overlay */
-header h1 {
-  position: relative;
-  z-index: 2;
-  margin: 0;
-  padding-top: 80px; /* Adjust to position the text vertically */
-  font-size: 2.5rem;
-}
-    h1 {
+      background: url('images/header.jpg') no-repeat center center/cover; /* update with your image URL */
+      position: relative;
+      height: 250px;
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(2, 89, 40, 0.6);
+      z-index: 1;
+    }
+    header h1 {
+      position: relative;
+      z-index: 2;
       margin: 0;
+      padding-top: 80px;
+      font-size: 2.5rem;
     }
     nav {
       background-color: #fff;
@@ -220,19 +210,20 @@ header h1 {
       <p><strong>Thank You</strong></p>
       <p>Your participation means more than just competing in a fantasy golf tournament; it represents a collective effort to support a deserving family in our community. Thank you for joining us in this meaningful cause.</p>
       <p>Fill out the form below or <a href="http://mastersmadness.com/enter" target="_blank">click here to enter!</a></p>
-
-        <!-- Enter Tab (Google Form Embed) -->
-  <div id="entry" class="tab-content">
-    <h2>Enter the Pool</h2>
-    <iframe 
-      src="https://docs.google.com/forms/d/e/1FAIpQLSeSywG8muoLG9dAqFn2_uJLDzxU62xVySBJFdaVHvCR4MVk9A/viewform?embedded=true" 
-      width="100%" 
-      height="800" 
-      frameborder="0" 
-      marginheight="0" 
-      marginwidth="0">
-      Loading…
-    </iframe>
+    </div>
+    
+    <!-- Enter Tab -->
+    <div id="entry" class="tab-content">
+      <h2>Enter the Pool</h2>
+      <iframe 
+        src="https://docs.google.com/forms/d/e/1FAIpQLSeSywG8muoLG9dAqFn2_uJLDzxU62xVySBJFdaVHvCR4MVk9A/viewform?embedded=true" 
+        width="640" 
+        height="5924" 
+        frameborder="0" 
+        marginheight="0" 
+        marginwidth="0">
+        Loading…
+      </iframe>
     </div>
   </div>
   
