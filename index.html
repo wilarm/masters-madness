@@ -81,6 +81,13 @@
         .position-3 {
             background-color: #cd7f32 !important;
         }
+        .yes {
+            color: green;
+            font-weight: bold;
+        }
+        .no {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -96,7 +103,7 @@
     </div>
 
     <script>
-        // Replace with your Google Sheet ID and tab name
+        // Your Google Sheet ID and tab name
         const SHEET_ID = '1afQSwPf_mbhGe7J906pj0p8gP9Pon1FQedoQJp6hBp4';
         const SHEET_TAB_NAME = '2024 SELECTIONS';
         const API_KEY = 'AIzaSyDcMK1A-dAl44BU48eCcg0QeqTlqDZw1uk';
@@ -133,24 +140,50 @@
             const headers = data[0];
             const rows = data.slice(1);
             
-            // Sort by points (assuming points are in a column)
-            const pointsIndex = headers.findIndex(header => 
-                header.toLowerCase().includes('point') || 
-                header.toLowerCase().includes('score') ||
-                header.toLowerCase().includes('total')
+            // Find the indices of the columns we want to display
+            const nameRankBestIndex = headers.findIndex(header => 
+                header.toLowerCase().includes('name and rank and best')
             );
             
-            if (pointsIndex !== -1) {
-                rows.sort((a, b) => Number(b[pointsIndex] || 0) - Number(a[pointsIndex] || 0));
+            const tieBreakerIndex = headers.findIndex(header => 
+                header.toLowerCase().includes('tie-breaker')
+            );
+            
+            const venmoIndex = headers.findIndex(header => 
+                header.toLowerCase().includes('have you venmo') || 
+                header.toLowerCase().includes('venmo')
+            );
+            
+            // Extract the score from the "Name and Rank and Best" column
+            function extractScore(nameRankBestString) {
+                // The format appears to be "Rank | Name | Score"
+                const parts = nameRankBestString.split('|');
+                if (parts.length >= 3) {
+                    const scoreStr = parts[2].trim();
+                    return parseInt(scoreStr) || 0; // Convert to number, default to 0 if NaN
+                }
+                return 0;
             }
             
-            // Create the table
+            // Sort by score (lower is better in golf)
+            if (nameRankBestIndex !== -1) {
+                rows.sort((a, b) => {
+                    const scoreA = extractScore(a[nameRankBestIndex] || "");
+                    const scoreB = extractScore(b[nameRankBestIndex] || "");
+                    return scoreA - scoreB; // Lower score is better in golf
+                });
+            }
+            
+            // Create the table with only the columns we want
             let tableHTML = `
                 <table>
                     <thead>
                         <tr>
                             <th>Position</th>
-                            ${headers.map(header => `<th>${header}</th>`).join('')}
+                            <th>Player</th>
+                            <th>Score</th>
+                            <th>Tie-breaker</th>
+                            <th>Paid</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -160,10 +193,35 @@
                 const position = index + 1;
                 const positionClass = position <= 3 ? `position-${position}` : '';
                 
+                let playerName = "";
+                let playerScore = "";
+                
+                // Parse the "Name and Rank and Best" column
+                if (nameRankBestIndex !== -1 && row[nameRankBestIndex]) {
+                    const parts = row[nameRankBestIndex].split('|');
+                    if (parts.length >= 3) {
+                        // Format: "Rank | Name | Score"
+                        playerName = parts[1] ? parts[1].trim() : "";
+                        playerScore = parts[2] ? parts[2].trim() : "";
+                    } else {
+                        playerName = row[nameRankBestIndex];
+                    }
+                }
+                
+                // Get tie-breaker value
+                const tieBreaker = tieBreakerIndex !== -1 ? row[tieBreakerIndex] || "" : "";
+                
+                // Check if they've paid
+                const hasPaid = venmoIndex !== -1 ? row[venmoIndex] || "" : "";
+                const paidClass = hasPaid.toLowerCase().includes('yes') ? 'yes' : 'no';
+                
                 tableHTML += `
                     <tr class="${positionClass}">
                         <td>${position}</td>
-                        ${row.map(cell => `<td>${cell}</td>`).join('')}
+                        <td>${playerName}</td>
+                        <td>${playerScore}</td>
+                        <td>${tieBreaker}</td>
+                        <td class="${paidClass}">${hasPaid}</td>
                     </tr>
                 `;
             });
