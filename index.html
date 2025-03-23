@@ -147,7 +147,7 @@
       font-size: 0.9rem;
     }
     
-    /* Colors for each group (adjust as desired) */
+    /* Example colors for each group */
     .group-1 { background-color: #28a745; } /* green */
     .group-2 { background-color: #007bff; } /* blue */
     .group-3 { background-color: #dc3545; } /* red */
@@ -407,65 +407,76 @@
         return;
       }
       
+      // Define your tournament start date.
+      const tournamentStartDate = new Date("March 20, 2025 04:00:00");
+      const tournamentStarted = new Date().getTime() >= tournamentStartDate.getTime();
+      
       let html = '';
       // Loop over each entry (skip header row)
       data.slice(1).forEach(row => {
-        // Check if there are enough columns (expect at least 21 columns for the full dataset)
+        // Check if there are enough columns.
         if (row.length < 21) return;
         
         const submitterName = row[2] || ''; // Full name from the "Name" column
         const overallScore = row[3] || '';
         
-        // Build an array of group selections.
-        // For group i (1-indexed), group name is at index 5+(i-1)*2 and score at index 6+(i-1)*2.
-        let groups = [];
-        for (let i = 1; i <= 8; i++) {
-          const groupName = row[5 + (i - 1) * 2] || '';
-          const groupScoreStr = row[6 + (i - 1) * 2] || '';
-          const groupScore = parseFloat(groupScoreStr);
-          groups.push({ group: i, name: groupName.trim(), score: isNaN(groupScore) ? Infinity : groupScore });
-        }
-        
-        // Filter out empty selections.
-        groups = groups.filter(g => g.name !== '');
-        // Sort groups by score (ascending: lower is better)
-        groups.sort((a, b) => a.score - b.score);
-        // Get the top 4 selections.
-        const topFour = groups.slice(0, 4);
-        
-        // Build inline preview for the top 4 selections.
-        let previewHTML = '<div style="display: inline-block; margin-left: 10px;">';
-        topFour.forEach(g => {
-          // Each preview shows the full group name and score inside a colored rectangle.
-          previewHTML += `<span class="group-preview group-${g.group}" title="Group ${g.group}: ${g.name} (Score: ${g.score})">
-                            ${g.name} (${g.score === Infinity ? 'N/A' : g.score})
-                          </span>`;
-        });
-        previewHTML += '</div>';
-        
-        // Build full group details for the expandable section.
-        let groupDetails = '<ul>';
-        for (let i = 1; i <= 8; i++) {
-          const groupName = row[5 + (i - 1) * 2] || '';
-          const groupScore = row[6 + (i - 1) * 2] || '';
-          if (groupName.trim() !== '') {
-            groupDetails += `<li>Group ${i}: ${groupName} — Score: ${groupScore}</li>`;
+        if (!tournamentStarted) {
+          // Before the tournament starts, only show the name and overall score.
+          html += `
+            <div style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+              <div style="display: flex; align-items: center;">
+                <span style="flex-grow: 1; font-size: 1.1rem;">
+                  <strong>${submitterName}</strong> — Overall Score: ${overallScore}
+                </span>
+              </div>
+            </div>
+          `;
+        } else {
+          // Once the tournament starts, show the inline preview of top 4 selections and allow expansion.
+          let groups = [];
+          // For group i (1-indexed), group name is at index 5+(i-1)*2 and score at index 6+(i-1)*2.
+          for (let i = 1; i <= 8; i++) {
+            const groupName = row[5 + (i - 1) * 2] || '';
+            const groupScoreStr = row[6 + (i - 1) * 2] || '';
+            const groupScore = parseFloat(groupScoreStr);
+            groups.push({ group: i, name: groupName.trim(), score: isNaN(groupScore) ? Infinity : groupScore });
           }
+          
+          groups = groups.filter(g => g.name !== '');
+          groups.sort((a, b) => a.score - b.score);
+          const topFour = groups.slice(0, 4);
+          
+          let previewHTML = '<div style="display: inline-block; margin-left: 10px;">';
+          topFour.forEach(g => {
+            // Display full group selection name and score in a colored rectangle.
+            previewHTML += `<span class="group-preview group-${g.group}" title="Group ${g.group}: ${g.name} (Score: ${g.score})">
+                              ${g.name} (${g.score === Infinity ? 'N/A' : g.score})
+                            </span>`;
+          });
+          previewHTML += '</div>';
+          
+          let groupDetails = '<ul>';
+          for (let i = 1; i <= 8; i++) {
+            const groupName = row[5 + (i - 1) * 2] || '';
+            const groupScore = row[6 + (i - 1) * 2] || '';
+            if (groupName.trim() !== '') {
+              groupDetails += `<li>Group ${i}: ${groupName} — Score: ${groupScore}</li>`;
+            }
+          }
+          groupDetails += '</ul>';
+          
+          html += `
+            <details style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+              <summary style="cursor: pointer; font-size: 1.1rem; display: flex; align-items: center;">
+                <span style="flex-grow: 1;">
+                  <strong>${submitterName}</strong> — Overall Score: ${overallScore}
+                </span>
+                ${previewHTML}
+              </summary>
+              ${groupDetails}
+            </details>
+          `;
         }
-        groupDetails += '</ul>';
-        
-        // Build the details element for this entry.
-        html += `
-          <details style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-            <summary style="cursor: pointer; font-size: 1.1rem; display: flex; align-items: center;">
-              <span style="flex-grow: 1;">
-                <strong>${submitterName}</strong> — Overall Score: ${overallScore}
-              </span>
-              ${previewHTML}
-            </summary>
-            ${groupDetails}
-          </details>
-        `;
       });
       
       document.getElementById('selections-content').innerHTML = html;
