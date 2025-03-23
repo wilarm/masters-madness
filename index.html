@@ -138,6 +138,28 @@
     .tab-content.active {
       display: block;
     }
+    .group-icon {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      border-radius: 50%;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 5px;
+      font-size: 0.8rem;
+    }
+    
+    /* Example colors for each group */
+    .group-1 { background-color: #28a745; } /* green */
+    .group-2 { background-color: #007bff; } /* blue */
+    .group-3 { background-color: #dc3545; } /* red */
+    .group-4 { background-color: #fd7e14; } /* orange */
+    .group-5 { background-color: #6f42c1; } /* purple */
+    .group-6 { background-color: #20c997; } /* teal */
+    .group-7 { background-color: #ffc107; } /* yellow */
+    .group-8 { background-color: #17a2b8; } /* cyan */
     /* Responsive styles */
     @media (max-width: 600px) {
       header {
@@ -382,9 +404,6 @@
       }
     }
         
-    // Function to display the Selections table as an expandable list.
-    // Only the "Name" and "Scores" columns (indices 2 and 3) are shown in summary.
-    // Additional group details (columns 5 onward in pairs) are revealed when the entry is expanded.
     function displaySelections(data) {
       if (!data || data.length < 2) {
         document.getElementById('selections-content').innerHTML =
@@ -392,44 +411,69 @@
         return;
       }
       
-      // Build the HTML using <details> and <summary> elements for each entry.
       let html = '';
-      // Skip the header row (data[0]) and loop over each subsequent row.
+      // Skip header row; iterate over each entry
       data.slice(1).forEach(row => {
-        // Ensure there are enough columns: at least Name (index 2) and Scores (index 3).
-        if (row.length < 4) return;
+        // Make sure there are enough columns (we expect at least 21 columns for 8 groups)
+        if (row.length < 21) return;
         
         const name = row[2] || '';
         const overallScore = row[3] || '';
         
-        // Build the details content for group information.
-        // Groups start at index 5 and are in pairs: [Group Name, Group Score].
+        // Build an array of group selections.
+        // For group i (1-indexed), the name is at index 5+(i-1)*2 and the score at index 6+(i-1)*2.
+        let groups = [];
+        for (let i = 1; i <= 8; i++) {
+          const groupName = row[5 + (i - 1) * 2] || '';
+          const groupScoreStr = row[6 + (i - 1) * 2] || '';
+          const groupScore = parseFloat(groupScoreStr);
+          // If score is not a number, assign a high value so it doesn't count in the top four.
+          groups.push({ group: i, name: groupName, score: isNaN(groupScore) ? Infinity : groupScore });
+        }
+        
+        // Filter out groups with no selection (empty name)
+        groups = groups.filter(g => g.name.trim() !== '');
+        
+        // Sort groups by score (ascending: lower scores are better)
+        groups.sort((a, b) => a.score - b.score);
+        
+        // Get the top four groups.
+        const topFour = groups.slice(0, 4);
+        
+        // Build preview icons for the top four.
+        let previewHTML = '';
+        topFour.forEach(g => {
+          // Use the first letter of the group selection as a preview.
+          const initial = g.name.trim().charAt(0).toUpperCase();
+          previewHTML += `<span class="group-icon group-${g.group}" title="Group ${g.group}: ${g.name} (Score: ${g.score})">${initial}</span>`;
+        });
+        
+        // Build the full group details list.
         let groupDetails = '<ul>';
-        for (let i = 5; i < row.length; i += 2) {
-          const groupName = row[i] || '';
-          const groupScore = row[i+1] || '';
-          // Only show the pair if there is a group name (and optionally a score)
+        for (let i = 1; i <= 8; i++) {
+          const groupName = row[5 + (i - 1) * 2] || '';
+          const groupScore = row[6 + (i - 1) * 2] || '';
           if (groupName.trim() !== '') {
-            groupDetails += `<li>${groupName}: ${groupScore}</li>`;
+            groupDetails += `<li>Group ${i}: ${groupName} — Score: ${groupScore}</li>`;
           }
         }
         groupDetails += '</ul>';
-    
-    // Create a <details> element for each row.
-    html += `
-      <details style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-        <summary style="cursor: pointer; font-size: 1.1rem;">
-          <strong>${name}</strong> - Overall Score: ${overallScore}
-        </summary>
-        ${groupDetails}
-      </details>
-    `;
-  });
-  
-  document.getElementById('selections-content').innerHTML = html;
-}
+        
+        html += `
+          <details style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+            <summary style="cursor: pointer; font-size: 1.1rem;">
+              <strong>${name}</strong> — Overall Score: ${overallScore}
+              <div style="margin-top: 5px;">${previewHTML}</div>
+            </summary>
+            ${groupDetails}
+          </details>
+        `;
+      });
+      
+      document.getElementById('selections-content').innerHTML = html;
+    }
 
-    
+
     // Update the "last updated" timestamp.
     function updateLastUpdated() {
       const now = new Date();
