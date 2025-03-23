@@ -138,20 +138,16 @@
     .tab-content.active {
       display: block;
     }
-    .group-icon {
+    .group-preview {
       display: inline-block;
-      width: 24px;
-      height: 24px;
-      line-height: 24px;
-      border-radius: 50%;
-      text-align: center;
-      color: white;
-      font-weight: bold;
+      padding: 4px 8px;
       margin-right: 5px;
-      font-size: 0.8rem;
+      border-radius: 4px;
+      color: white;
+      font-size: 0.9rem;
     }
     
-    /* Example colors for each group */
+    /* Colors for each group (adjust as desired) */
     .group-1 { background-color: #28a745; } /* green */
     .group-2 { background-color: #007bff; } /* blue */
     .group-3 { background-color: #dc3545; } /* red */
@@ -412,43 +408,42 @@
       }
       
       let html = '';
-      // Skip header row; iterate over each entry
+      // Loop over each entry (skip header row)
       data.slice(1).forEach(row => {
-        // Make sure there are enough columns (we expect at least 21 columns for 8 groups)
+        // Check if there are enough columns (expect at least 21 columns for the full dataset)
         if (row.length < 21) return;
         
-        const name = row[2] || '';
+        const submitterName = row[2] || ''; // Full name from the "Name" column
         const overallScore = row[3] || '';
         
         // Build an array of group selections.
-        // For group i (1-indexed), the name is at index 5+(i-1)*2 and the score at index 6+(i-1)*2.
+        // For group i (1-indexed), group name is at index 5+(i-1)*2 and score at index 6+(i-1)*2.
         let groups = [];
         for (let i = 1; i <= 8; i++) {
           const groupName = row[5 + (i - 1) * 2] || '';
           const groupScoreStr = row[6 + (i - 1) * 2] || '';
           const groupScore = parseFloat(groupScoreStr);
-          // If score is not a number, assign a high value so it doesn't count in the top four.
-          groups.push({ group: i, name: groupName, score: isNaN(groupScore) ? Infinity : groupScore });
+          groups.push({ group: i, name: groupName.trim(), score: isNaN(groupScore) ? Infinity : groupScore });
         }
         
-        // Filter out groups with no selection (empty name)
-        groups = groups.filter(g => g.name.trim() !== '');
-        
-        // Sort groups by score (ascending: lower scores are better)
+        // Filter out empty selections.
+        groups = groups.filter(g => g.name !== '');
+        // Sort groups by score (ascending: lower is better)
         groups.sort((a, b) => a.score - b.score);
-        
-        // Get the top four groups.
+        // Get the top 4 selections.
         const topFour = groups.slice(0, 4);
         
-        // Build preview icons for the top four.
-        let previewHTML = '';
+        // Build inline preview for the top 4 selections.
+        let previewHTML = '<div style="display: inline-block; margin-left: 10px;">';
         topFour.forEach(g => {
-          // Use the first letter of the group selection as a preview.
-          const initial = g.name.trim().charAt(0).toUpperCase();
-          previewHTML += `<span class="group-icon group-${g.group}" title="Group ${g.group}: ${g.name} (Score: ${g.score})">${initial}</span>`;
+          // Each preview shows the full group name and score inside a colored rectangle.
+          previewHTML += `<span class="group-preview group-${g.group}" title="Group ${g.group}: ${g.name} (Score: ${g.score})">
+                            ${g.name} (${g.score === Infinity ? 'N/A' : g.score})
+                          </span>`;
         });
+        previewHTML += '</div>';
         
-        // Build the full group details list.
+        // Build full group details for the expandable section.
         let groupDetails = '<ul>';
         for (let i = 1; i <= 8; i++) {
           const groupName = row[5 + (i - 1) * 2] || '';
@@ -459,11 +454,14 @@
         }
         groupDetails += '</ul>';
         
+        // Build the details element for this entry.
         html += `
           <details style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-            <summary style="cursor: pointer; font-size: 1.1rem;">
-              <strong>${name}</strong> — Overall Score: ${overallScore}
-              <div style="margin-top: 5px;">${previewHTML}</div>
+            <summary style="cursor: pointer; font-size: 1.1rem; display: flex; align-items: center;">
+              <span style="flex-grow: 1;">
+                <strong>${submitterName}</strong> — Overall Score: ${overallScore}
+              </span>
+              ${previewHTML}
             </summary>
             ${groupDetails}
           </details>
@@ -472,7 +470,6 @@
       
       document.getElementById('selections-content').innerHTML = html;
     }
-
 
     // Update the "last updated" timestamp.
     function updateLastUpdated() {
