@@ -168,10 +168,10 @@
     <!-- Leaderboard Tab -->
     <div id="leaderboard" class="tab-content">
       <h2>PGA Tour's Current Tournament Leaderboard</h2>
+          <p class="last-updated">Last updated: <span id="update-time">--</span></p>
       <div id="lb-content">
         <div class="loading">Loading leaderboard data...</div>
       </div>
-      <p class="last-updated">Last updated: <span id="update-time">--</span></p>
     </div>
     
     <!-- Rules Tab -->
@@ -215,10 +215,11 @@
     <!-- Enter Tab -->
     <div id="entry" class="tab-content">
       <h2>Enter the Pool</h2>
+      <div style="text-align: center;">
       <iframe 
         src="https://docs.google.com/forms/d/e/1FAIpQLSeSywG8muoLG9dAqFn2_uJLDzxU62xVySBJFdaVHvCR4MVk9A/viewform?embedded=true" 
         width="640" 
-        height="5924" 
+        height="4924"
         frameborder="0" 
         marginheight="0" 
         marginwidth="0">
@@ -371,7 +372,7 @@
       if (document.getElementById('leaderboard').classList.contains('active')) {
         fetchLeaderboardData();
       }
-    }, 5 * 60 * 1000);
+    }, 1440 * 60 * 1000);
   </script>
 </body>
 </html>
