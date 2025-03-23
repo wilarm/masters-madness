@@ -138,6 +138,29 @@
     .tab-content.active {
       display: block;
     }
+      @media (max-width: 600px) {
+    header {
+      height: 150px;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      padding-top: 40px;
+    }
+    nav ul {
+      flex-direction: column;
+      align-items: center;
+    }
+    nav li {
+      margin: 10px 0;
+    }
+    .container {
+      padding: 10px;
+    }
+    iframe {
+      width: 100%;
+      /* Adjust height if needed, or let it scale automatically */
+    }
+  }
   </style>
 </head>
 <body>
@@ -196,7 +219,7 @@
       <p>Select your team from 8 groups based on performance potential. Each group was created based on odds to win the tournament. Selections can be made at the bottom of the page (Max 2 entries per participant). You will receive an email confirmation acknowledging your picks and can change them at any time up until the deadline.</p>
       <p><strong>Entry Submission:</strong></p>
       <ul>
-        <li><strong>Deadline:</strong> ~5am MT, Thursday, April 7th.</li>
+        <li><strong>Deadline:</strong> ~5am MT, Thursday, April 10th.</li>
         <li><strong>Entry Fee:</strong> $100 per team, with a maximum of two teams per participant.</li>
         <li><strong>Payment Methods:</strong> Venmo (@Drake-Fages) or alternative arrangements via contact with Drake @ 951-818-7517.</li>
       </ul>
@@ -345,7 +368,7 @@
     
     // Countdown Timer Code
     // Set the deadline for picks lock (adjust the date/time as needed)
-    const picksLockDeadline = new Date("April 7, 2025 05:00:00").getTime();
+    const picksLockDeadline = new Date("April 10, 2025 05:00:00").getTime();
     
     function updateCountdown() {
       const now = new Date().getTime();
