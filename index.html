@@ -381,36 +381,54 @@
           '<div class="error">Error loading selections data. Please try again later.</div>';
       }
     }
-    
-    // Function to display the Selections table.
-    // This function builds a table from all columns in the data.
+        
+    // Function to display the Selections table as an expandable list.
+    // Only the "Name" and "Scores" columns (indices 2 and 3) are shown in summary.
+    // Additional group details (columns 5 onward in pairs) are revealed when the entry is expanded.
     function displaySelections(data) {
       if (!data || data.length < 2) {
         document.getElementById('selections-content').innerHTML =
           '<div class="error">No selections data available or invalid data format.</div>';
         return;
       }
-      let tableHTML = `<table>
-        <thead>
-          <tr>`;
-      // Build header row from the first row of data.
-      data[0].forEach(header => {
-        tableHTML += `<th>${header}</th>`;
-      });
-      tableHTML += `</tr>
-        </thead>
-        <tbody>`;
-      // Build table rows for the rest of the data.
+      
+      // Build the HTML using <details> and <summary> elements for each entry.
+      let html = '';
+      // Skip the header row (data[0]) and loop over each subsequent row.
       data.slice(1).forEach(row => {
-        tableHTML += `<tr>`;
-        data[0].forEach((col, i) => {
-          tableHTML += `<td>${row[i] || ''}</td>`;
-        });
-        tableHTML += `</tr>`;
-      });
-      tableHTML += `</tbody></table>`;
-      document.getElementById('selections-content').innerHTML = tableHTML;
-    }
+        // Ensure there are enough columns: at least Name (index 2) and Scores (index 3).
+        if (row.length < 4) return;
+        
+        const name = row[2] || '';
+        const overallScore = row[3] || '';
+        
+        // Build the details content for group information.
+        // Groups start at index 5 and are in pairs: [Group Name, Group Score].
+        let groupDetails = '<ul>';
+        for (let i = 5; i < row.length; i += 2) {
+          const groupName = row[i] || '';
+          const groupScore = row[i+1] || '';
+          // Only show the pair if there is a group name (and optionally a score)
+          if (groupName.trim() !== '') {
+            groupDetails += `<li>${groupName}: ${groupScore}</li>`;
+          }
+        }
+        groupDetails += '</ul>';
+    
+    // Create a <details> element for each row.
+    html += `
+      <details style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+        <summary style="cursor: pointer; font-size: 1.1rem;">
+          <strong>${name}</strong> - Overall Score: ${overallScore}
+        </summary>
+        ${groupDetails}
+      </details>
+    `;
+  });
+  
+  document.getElementById('selections-content').innerHTML = html;
+}
+
     
     // Update the "last updated" timestamp.
     function updateLastUpdated() {
