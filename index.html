@@ -16,7 +16,7 @@
       background-color: #F5F3E8;
     }
     header {
-      background: url('header.jpg') no-repeat center center/cover; /* update with your image URL */
+      background: url('header.jpg') no-repeat center center/cover; /* update with your image URL or GitHub path */
       position: relative;
       height: 250px;
       text-align: center;
@@ -138,29 +138,29 @@
     .tab-content.active {
       display: block;
     }
-      @media (max-width: 600px) {
-    header {
-      height: 150px;
+    /* Responsive styles */
+    @media (max-width: 600px) {
+      header {
+        height: 150px;
+      }
+      header h1 {
+        font-size: 1.8rem;
+        padding-top: 40px;
+      }
+      nav ul {
+        flex-direction: column;
+        align-items: center;
+      }
+      nav li {
+        margin: 10px 0;
+      }
+      .container {
+        padding: 10px;
+      }
+      iframe {
+        width: 100%;
+      }
     }
-    header h1 {
-      font-size: 1.8rem;
-      padding-top: 40px;
-    }
-    nav ul {
-      flex-direction: column;
-      align-items: center;
-    }
-    nav li {
-      margin: 10px 0;
-    }
-    .container {
-      padding: 10px;
-    }
-    iframe {
-      width: 100%;
-      /* Adjust height if needed, or let it scale automatically */
-    }
-  }
   </style>
 </head>
 <body>
@@ -179,7 +179,7 @@
   </nav>
   
   <div class="container">
-    <!-- Home Tab -->
+    <!-- Home Tab (Standings) -->
     <div id="home" class="tab-content active">
       <!-- Countdown Timer -->
       <div id="countdown-container">
@@ -190,12 +190,19 @@
         Check back here for live standings after the tournament begins.<br>
         Congrats to last year's winners! 1st Place...Ryan McKenzie | 2nd Place...Wes Upchurch | 3rd Place...Mike Walton
       </p>
+      <!-- Selections Table -->
+      <div id="selections-container">
+        <h2>Current Selections</h2>
+        <div id="selections-content">
+          <div class="loading">Loading selections data...</div>
+        </div>
+      </div>
     </div>
     
     <!-- Leaderboard Tab -->
     <div id="leaderboard" class="tab-content">
       <h2>PGA Tour's Current Tournament Leaderboard</h2>
-          <p class="last-updated">Last updated: <span id="update-time">--</span></p>
+      <p class="last-updated">Last updated: <span id="update-time">--</span></p>
       <div id="lb-content">
         <div class="loading">Loading leaderboard data...</div>
       </div>
@@ -219,7 +226,7 @@
       <p>Select your team from 8 groups based on performance potential. Each group was created based on odds to win the tournament. Selections can be made at the bottom of the page (Max 2 entries per participant). You will receive an email confirmation acknowledging your picks and can change them at any time up until the deadline.</p>
       <p><strong>Entry Submission:</strong></p>
       <ul>
-        <li><strong>Deadline:</strong> ~5am MT, Thursday, April 10th.</li>
+        <li><strong>Deadline:</strong> ~5am MT, Thursday, April 7th.</li>
         <li><strong>Entry Fee:</strong> $100 per team, with a maximum of two teams per participant.</li>
         <li><strong>Payment Methods:</strong> Venmo (@Drake-Fages) or alternative arrangements via contact with Drake @ 951-818-7517.</li>
       </ul>
@@ -242,15 +249,17 @@
     <div id="entry" class="tab-content">
       <h2>Enter the Pool</h2>
       <div style="text-align: center;">
-      <iframe 
-        src="https://docs.google.com/forms/d/e/1FAIpQLSeSywG8muoLG9dAqFn2_uJLDzxU62xVySBJFdaVHvCR4MVk9A/viewform?embedded=true" 
-        width="640" 
-        height="4924"
-        frameborder="0" 
-        marginheight="0" 
-        marginwidth="0">
-        Loading…
-      </iframe>
+        <iframe 
+          src="https://docs.google.com/forms/d/e/1FAIpQLSeSywG8muoLG9dAqFn2_uJLDzxU62xVySBJFdaVHvCR4MVk9A/viewform?embedded=true" 
+          width="640" 
+          height="4924"
+          frameborder="0" 
+          marginheight="0" 
+          marginwidth="0"
+          style="display: block; margin: auto;">
+          Loading…
+        </iframe>
+      </div>
     </div>
   </div>
   
@@ -268,38 +277,44 @@
         const tabId = this.getAttribute('data-tab');
         document.getElementById(tabId).classList.add('active');
         
-        // If the Leaderboard tab is activated, refresh data.
+        // If the Leaderboard tab is activated, refresh its data.
         if (tabId === 'leaderboard') {
           fetchLeaderboardData();
+        }
+        // If the Home tab is activated, load the selections data.
+        if (tabId === 'home') {
+          fetchSelectionsData();
         }
       });
     });
     
     // Google Sheets API details
     const SHEET_ID = '1afQSwPf_mbhGe7J906pj0p8gP9Pon1FQedoQJp6hBp4';
-    const SHEET_TAB_NAME = '2025 Leaderboard';
     const API_KEY = 'AIzaSyDcMK1A-dAl44BU48eCcg0QeqTlqDZw1uk';
+    // Tab names for different datasets
+    const LEADERBOARD_TAB_NAME = '2025 Leaderboard';
+    const SELECTIONS_TAB_NAME = '2025 selections';
     
-    // Function to fetch data from Google Sheets
+    // Function to fetch Leaderboard data from Google Sheets
     async function fetchLeaderboardData() {
       try {
         const response = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_TAB_NAME}?key=${API_KEY}`
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${LEADERBOARD_TAB_NAME}?key=${API_KEY}`
         );
         if (!response.ok) {
-          throw new Error('Failed to fetch data');
+          throw new Error('Failed to fetch leaderboard data');
         }
         const data = await response.json();
         displayLeaderboard(data.values);
         updateLastUpdated();
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching leaderboard data:', error);
         document.getElementById('lb-content').innerHTML =
           '<div class="error">Error loading leaderboard data. Please try again later.</div>';
       }
     }
     
-    // Function to display the leaderboard.
+    // Function to display the Leaderboard.
     // Extract columns: POS (B, index 1), PLAYER (D, index 3), SCORE (E, index 4)
     function displayLeaderboard(data) {
       if (!data || data.length < 2) {
@@ -307,7 +322,6 @@
           '<div class="error">No data available or invalid data format.</div>';
         return;
       }
-      // Skip the header row.
       const rows = data.slice(1);
       let tableHTML = `
         <table>
@@ -321,13 +335,11 @@
           <tbody>`;
       
       rows.forEach(row => {
-        // Ensure the row has enough columns.
         if (row.length < 5) return;
         const pos = row[1] || "";
         const player = row[3] || "";
         const score = row[4] || "";
         
-        // Determine score styling.
         let scoreClass = "score-even";
         const numericScore = Number(score);
         if (!isNaN(numericScore)) {
@@ -352,6 +364,54 @@
       document.getElementById('lb-content').innerHTML = tableHTML;
     }
     
+    // Function to fetch Selections data from Google Sheets
+    async function fetchSelectionsData() {
+      try {
+        const response = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SELECTIONS_TAB_NAME}?key=${API_KEY}`
+        );
+        if (!response.ok) {
+          throw new Error('Failed to fetch selections data');
+        }
+        const data = await response.json();
+        displaySelections(data.values);
+      } catch (error) {
+        console.error('Error fetching selections data:', error);
+        document.getElementById('selections-content').innerHTML =
+          '<div class="error">Error loading selections data. Please try again later.</div>';
+      }
+    }
+    
+    // Function to display the Selections table.
+    // This function builds a table from all columns in the data.
+    function displaySelections(data) {
+      if (!data || data.length < 2) {
+        document.getElementById('selections-content').innerHTML =
+          '<div class="error">No selections data available or invalid data format.</div>';
+        return;
+      }
+      let tableHTML = `<table>
+        <thead>
+          <tr>`;
+      // Build header row from the first row of data.
+      data[0].forEach(header => {
+        tableHTML += `<th>${header}</th>`;
+      });
+      tableHTML += `</tr>
+        </thead>
+        <tbody>`;
+      // Build table rows for the rest of the data.
+      data.slice(1).forEach(row => {
+        tableHTML += `<tr>`;
+        data[0].forEach((col, i) => {
+          tableHTML += `<td>${row[i] || ''}</td>`;
+        });
+        tableHTML += `</tr>`;
+      });
+      tableHTML += `</tbody></table>`;
+      document.getElementById('selections-content').innerHTML = tableHTML;
+    }
+    
     // Update the "last updated" timestamp.
     function updateLastUpdated() {
       const now = new Date();
@@ -367,38 +427,36 @@
     }
     
     // Countdown Timer Code
-    // Set the deadline for picks lock (adjust the date/time as needed)
-    const picksLockDeadline = new Date("April 10, 2025 05:00:00").getTime();
-    
+    const picksLockDeadline = new Date("April 7, 2025 05:00:00").getTime();
     function updateCountdown() {
       const now = new Date().getTime();
       const distance = picksLockDeadline - now;
-      
-      // If the countdown is finished, display a message
       if (distance < 0) {
         document.getElementById("countdown-timer").innerHTML = "Picks are locked!";
         clearInterval(countdownInterval);
         return;
       }
-      
       const days = Math.floor(distance / (1000 * 60 * 60 * 24));
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-      
       document.getElementById("countdown-timer").innerHTML = 
         days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
     }
-    
     const countdownInterval = setInterval(updateCountdown, 1000);
-    updateCountdown(); // initial call
+    updateCountdown();
     
-    // Refresh the Leaderboard data every 5 minutes if that tab is active.
+    // Auto-refresh: Refresh Leaderboard data once per day (1440 minutes * 60 * 1000 ms)
     setInterval(() => {
       if (document.getElementById('leaderboard').classList.contains('active')) {
         fetchLeaderboardData();
       }
     }, 1440 * 60 * 1000);
+    
+    // On initial load, if Home is active, fetch selections data.
+    if (document.getElementById('home').classList.contains('active')) {
+      fetchSelectionsData();
+    }
   </script>
 </body>
 </html>
