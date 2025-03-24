@@ -343,6 +343,7 @@
           '<div class="error">No data available or invalid data format.</div>';
         return;
       }
+    
       const rows = data.slice(1);
       let tableHTML = `
         <table>
@@ -351,39 +352,51 @@
               <th>POS</th>
               <th>PLAYER</th>
               <th>SCORE</th>
+              <th>TODAY</th>
+              <th>THRU</th>
             </tr>
           </thead>
           <tbody>`;
-      
+    
       rows.forEach(row => {
-        if (row.length < 5) return;
+        if (row.length < 7) return;
         const pos = row[1] || "";
         const player = row[3] || "";
         const score = row[4] || "";
-        
+        const today = row[5] || "";
+        const thru = row[6] || "";
+    
         let scoreClass = "score-even";
-        const numericScore = Number(score);
-        if (!isNaN(numericScore)) {
-          if (numericScore < 0) {
-            scoreClass = "score-under";
-          } else if (numericScore > 0) {
-            scoreClass = "score-over";
+        if (score === "E") {
+          scoreClass = "score-even";
+        } else {
+          const numericScore = Number(score);
+          if (!isNaN(numericScore)) {
+            if (numericScore < 0) {
+              scoreClass = "score-under";
+            } else if (numericScore > 0) {
+              scoreClass = "score-over";
+            }
           }
         }
+    
         tableHTML += `
           <tr>
             <td>${pos}</td>
             <td>${player}</td>
             <td class="${scoreClass}">${score}</td>
+            <td>${today}</td>
+            <td>${thru}</td>
           </tr>`;
       });
-      
+    
       tableHTML += `
           </tbody>
         </table>`;
-      
+    
       document.getElementById('lb-content').innerHTML = tableHTML;
     }
+
     
     // Function to fetch Selections data from Google Sheets
     async function fetchSelectionsData() {
