@@ -362,9 +362,9 @@
         if (row.length < 7) return;
         const pos = row[1] || "";
         const player = row[2] || ""; //switch this back to '3' when tournament starts
-        const score = row[4] || "";
-        const today = row[5] || "";
-        const thru = row[6] || "";
+        const score = row[3] || "";
+        const today = row[4] || "";
+        const thru = row[5] || "";
     
         let scoreClass = "score-even";
         if (score === "E") {
