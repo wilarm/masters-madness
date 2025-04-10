@@ -156,6 +156,7 @@
     .group-6 { background-color: #20c997; } /* teal */
     .group-7 { background-color: #ffc107; } /* yellow */
     .group-8 { background-color: #17a2b8; } /* cyan */
+    .group-9 { background-color: #e7a095; } /* salmon */
     /* Responsive styles */
     @media (max-width: 600px) {
       header {
@@ -451,7 +452,7 @@
           // Once the tournament starts, show the inline preview of top 4 selections and allow expansion.
           let groups = [];
           // For group i (1-indexed), group name is at index 5+(i-1)*2 and score at index 6+(i-1)*2.
-          for (let i = 1; i <= 8; i++) {
+          for (let i = 1; i <= 9; i++) {
             const groupName = row[5 + (i - 1) * 2] || '';
             const groupScoreStr = row[6 + (i - 1) * 2] || '';
             const groupScore = parseFloat(groupScoreStr);
@@ -472,7 +473,7 @@
           previewHTML += '</div>';
           
           let groupDetails = '<ul>';
-          for (let i = 1; i <= 8; i++) {
+          for (let i = 1; i <= 9; i++) {
             const groupName = row[5 + (i - 1) * 2] || '';
             const groupScore = row[6 + (i - 1) * 2] || '';
             if (groupName.trim() !== '') {
