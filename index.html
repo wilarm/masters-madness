@@ -436,6 +436,7 @@
         
         const submitterName = row[2] || ''; // Full name from the "Name" column
         const overallScore = row[3] || '';
+        const place = row[4] || '';
         
         if (!tournamentStarted) {
           // Before the tournament starts, only show the name and overall score.
@@ -443,7 +444,7 @@
             <div style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
               <div style="display: flex; align-items: center;">
                 <span style="flex-grow: 1; font-size: 1.1rem;">
-                  <strong>${submitterName}</strong> — Overall Score: ${overallScore}
+                  Place: ${place} | <strong>${submitterName}</strong> — Score: ${overallScore}
                 </span>
               </div>
             </div>
