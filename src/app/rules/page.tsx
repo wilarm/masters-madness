@@ -1,4 +1,6 @@
 import { Card } from "@/components/ui/card";
+import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
+import { getRulesContent } from "@/lib/db/settings";
 import {
   Trophy,
   DollarSign,
@@ -9,7 +11,11 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-export default function RulesPage() {
+export const revalidate = 60; // revalidate every minute
+
+export default async function RulesPage() {
+  const rules = await getRulesContent();
+
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center mb-12">
@@ -33,12 +39,7 @@ export default function RulesPage() {
               <h2 className="font-heading text-xl font-bold text-foreground mb-2">
                 Why Your Participation Matters
               </h2>
-              <p className="text-muted leading-relaxed">
-                Beyond the competition, this pool is about community. A portion
-                of the proceeds will go to support someone in our community who
-                could use a little help. Details will be shared before the
-                tournament.
-              </p>
+              <p className="text-muted leading-relaxed">{rules.communityMessage}</p>
             </div>
           </div>
         </Card>
@@ -72,6 +73,19 @@ export default function RulesPage() {
           </div>
         </Card>
 
+        {/* Interactive Scoring Visualizer */}
+        <Card>
+          <div>
+            <h2 className="font-heading text-xl font-bold text-foreground mb-2">
+              See It in Action
+            </h2>
+            <p className="text-muted text-sm mb-4">
+              Watch how your pool score changes as golfers play. Your best 4 of 9 scores count — lower is better in golf!
+            </p>
+            <ScoringVisualizer />
+          </div>
+        </Card>
+
         {/* Entry Details */}
         <Card>
           <div className="flex items-start gap-4">
@@ -89,9 +103,7 @@ export default function RulesPage() {
                     <Clock className="h-4 w-4 text-masters-green" />
                     <span className="font-semibold text-foreground">Deadline</span>
                   </div>
-                  <p className="text-muted text-sm">
-                    ~5am MT, Thursday, April 9th, 2026
-                  </p>
+                  <p className="text-muted text-sm">{rules.deadline}</p>
                 </div>
 
                 <div className="rounded-lg bg-bg-muted p-4">
@@ -99,9 +111,7 @@ export default function RulesPage() {
                     <DollarSign className="h-4 w-4 text-masters-green" />
                     <span className="font-semibold text-foreground">Entry Fee</span>
                   </div>
-                  <p className="text-muted text-sm">
-                    $100 per team (max 2 entries per person)
-                  </p>
+                  <p className="text-muted text-sm">{rules.entryFee}</p>
                 </div>
 
                 <div className="rounded-lg bg-bg-muted p-4">
@@ -109,9 +119,7 @@ export default function RulesPage() {
                     <Users className="h-4 w-4 text-masters-green" />
                     <span className="font-semibold text-foreground">Max Entries</span>
                   </div>
-                  <p className="text-muted text-sm">
-                    2 teams per participant
-                  </p>
+                  <p className="text-muted text-sm">{rules.maxEntries}</p>
                 </div>
 
                 <div className="rounded-lg bg-bg-muted p-4">
@@ -119,9 +127,7 @@ export default function RulesPage() {
                     <DollarSign className="h-4 w-4 text-masters-green" />
                     <span className="font-semibold text-foreground">Payment</span>
                   </div>
-                  <p className="text-muted text-sm">
-                    Venmo or contact pool admin for arrangements
-                  </p>
+                  <p className="text-muted text-sm">{rules.paymentInfo}</p>
                 </div>
               </div>
             </div>
@@ -140,15 +146,17 @@ export default function RulesPage() {
               </h2>
 
               <div className="space-y-3">
-                <PayoutRow place="1st" amount="$1,000" highlight />
-                <PayoutRow place="2nd" amount="$400" />
-                <PayoutRow place="3rd" amount="$100" />
+                {rules.payouts.map((row) => (
+                  <PayoutRow
+                    key={row.place}
+                    place={row.place}
+                    amount={row.amount}
+                    highlight={row.highlight}
+                  />
+                ))}
               </div>
 
-              <p className="text-sm text-muted mt-4">
-                Total prize pool: $1,500. Tiebreakers are in place to ensure
-                fairness and competition.
-              </p>
+              <p className="text-sm text-muted mt-4">{rules.payoutNote}</p>
             </div>
           </div>
         </Card>
@@ -166,12 +174,12 @@ export default function RulesPage() {
               <p className="text-muted leading-relaxed">
                 Share this pool with friends and family! Just send them:{" "}
                 <a
-                  href="https://mastersmadness.com"
+                  href={`https://${rules.shareUrl}`}
                   className="text-masters-green font-semibold hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  mastersmadness.com
+                  {rules.shareUrl}
                 </a>
               </p>
             </div>

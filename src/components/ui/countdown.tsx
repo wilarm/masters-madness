@@ -18,12 +18,14 @@ export function Countdown({
 
   useEffect(() => {
     function update() {
-      const now = new Date().getTime();
-      if (targetDate.getTime() - now < 0) {
+      const result = formatCountdown(targetDate);
+      if (result.expired) {
         setIsLocked(true);
         setTimeLeft("Picks are locked!");
       } else {
-        setTimeLeft(formatCountdown(targetDate));
+        setTimeLeft(
+          `${result.days}d  ${result.hours}h  ${result.minutes}m  ${result.seconds}s`
+        );
       }
     }
 
@@ -35,15 +37,17 @@ export function Countdown({
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-3 rounded-xl px-6 py-4 text-center transition-all duration-300",
+        "flex items-center justify-center gap-2 sm:gap-3 rounded-xl px-4 sm:px-6 py-3 sm:py-4 text-center transition-all duration-300",
         isLocked
           ? "bg-danger/10 text-danger"
           : "bg-masters-green-light text-masters-green"
       )}
     >
-      <Clock className="h-5 w-5 flex-shrink-0" />
-      <span className="font-semibold text-lg">
-        {label}: <span className="font-mono font-bold">{timeLeft}</span>
+      <Clock className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+      <span className="font-semibold text-sm sm:text-lg">
+        <span className="hidden sm:inline">{label}: </span>
+        <span className="sm:hidden">{label.split(" ").slice(0, 2).join(" ")}: </span>
+        <span className="font-mono font-bold">{timeLeft}</span>
       </span>
     </div>
   );

@@ -19,7 +19,7 @@
 
   /* Text */
   --color-foreground: #1C1917;
-  --color-muted: #64748B;
+  --color-muted: #475569;
 
   /* Borders */
   --color-border: #D6D3D1;
@@ -61,7 +61,17 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Safe area insets for iPhone notch / Dynamic Island / home indicator */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     @apply bg-background text-foreground;
+  }
+
+  /* Prevent iOS Safari zoom on input focus (requires 16px minimum) */
+  input, select, textarea {
+    font-size: 16px;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -145,6 +155,19 @@
 @keyframes staggerFadeIn {
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    max-height: 800px;
     transform: translateY(0);
   }
 }
@@ -240,7 +263,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
+  /* --color-muted intentionally NOT mapped to shadcn --muted (which is a background color).
+     Our --color-muted: #475569 from @theme is the text color used for text-muted. */
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);

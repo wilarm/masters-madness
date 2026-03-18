@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { StartPoolButton } from "@/components/ui/start-pool-button";
 import {
   Trophy,
   BarChart3,
@@ -17,10 +18,10 @@ import {
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/", label: "Standings", icon: Trophy },
+  { href: "/standings", label: "Standings", icon: Trophy },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/picks", label: "My Picks", icon: ClipboardList, auth: true },
-  { href: "/analytics", label: "Analytics", icon: Search, auth: true },
+  { href: "/analytics", label: "Pool Analytics", icon: Search },
   { href: "/research", label: "Research", icon: BookOpen },
   { href: "/rules", label: "Rules", icon: Users },
 ];
@@ -28,6 +29,10 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isSignedIn, isLoaded } = useUser();
+  // Show signed-out UI when Clerk hasn't loaded yet (optimistic) or confirmed signed-out
+  const showSignIn = !isLoaded || !isSignedIn;
+  const showUserButton = isLoaded && isSignedIn;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
@@ -59,7 +64,7 @@ export function Navbar() {
                     "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
                       ? "bg-masters-green-light text-masters-green"
-                      : "text-muted hover:text-foreground hover:bg-bg-muted"
+                      : "text-foreground/70 hover:text-foreground hover:bg-bg-muted"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -69,36 +74,34 @@ export function Navbar() {
 
               // Auth-required links only show when signed in
               if (link.auth) {
-                return (
-                  <Show key={link.href} when="signed-in">
-                    {linkEl}
-                  </Show>
-                );
+                return showUserButton ? (
+                  <span key={link.href}>{linkEl}</span>
+                ) : null;
               }
 
               return <span key={link.href}>{linkEl}</span>;
             })}
           </div>
 
-          {/* Auth Buttons */}
+          {/* Auth Buttons + Start Pool */}
           <div className="flex items-center gap-3">
-            <Show when="signed-out">
+            <StartPoolButton className="hidden sm:block" />
+            {showSignIn && (
               <SignInButton mode="modal">
-                <button className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-masters-green px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-masters-green-dark hover:shadow-md active:scale-[0.98] cursor-pointer">
+                <button className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-masters-green bg-white px-4 py-2 text-sm font-semibold text-masters-green transition-all duration-200 hover:bg-masters-green-light active:scale-[0.98] cursor-pointer">
                   Sign In
                 </button>
               </SignInButton>
-            </Show>
-            <Show when="signed-in">
+            )}
+            {showUserButton && (
               <UserButton
-                afterSignOutUrl="/"
                 appearance={{
                   elements: {
                     avatarBox: "h-9 w-9",
                   },
                 }}
               />
-            </Show>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -117,7 +120,7 @@ export function Navbar() {
 
         {/* Mobile Nav */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-border py-3 space-y-1">
+          <div className="md:hidden border-t border-border py-3 space-y-1 pb-[env(safe-area-inset-bottom,12px)]">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive =
@@ -129,10 +132,10 @@ export function Navbar() {
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium transition-all duration-200",
+                    "flex items-center gap-3 px-3 py-3.5 rounded-lg text-base font-medium transition-all duration-200 min-h-[48px] active:scale-[0.98]",
                     isActive
                       ? "bg-masters-green-light text-masters-green"
-                      : "text-muted hover:text-foreground hover:bg-bg-muted"
+                      : "text-foreground/70 hover:text-foreground hover:bg-bg-muted active:bg-bg-muted"
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -141,25 +144,24 @@ export function Navbar() {
               );
 
               if (link.auth) {
-                return (
-                  <Show key={link.href} when="signed-in">
-                    {linkEl}
-                  </Show>
-                );
+                return showUserButton ? (
+                  <span key={link.href}>{linkEl}</span>
+                ) : null;
               }
 
               return <span key={link.href}>{linkEl}</span>;
             })}
 
-            <Show when="signed-out">
-              <div className="pt-2 border-t border-border">
+            <div className="pt-2 border-t border-border space-y-2">
+              <StartPoolButton className="block w-full [&_button]:w-full [&_button]:justify-center [&_button]:min-h-[48px]" />
+              {showSignIn && (
                 <SignInButton mode="modal">
-                  <button className="w-full flex items-center justify-center gap-2 rounded-lg bg-masters-green px-4 py-3 text-base font-semibold text-white cursor-pointer">
+                  <button className="w-full flex items-center justify-center gap-2 rounded-lg border border-masters-green bg-white px-4 py-3.5 text-base font-semibold text-masters-green cursor-pointer min-h-[48px] active:scale-[0.98] active:bg-masters-green-light">
                     Sign In
                   </button>
                 </SignInButton>
-              </div>
-            </Show>
+              )}
+            </div>
           </div>
         )}
       </div>
