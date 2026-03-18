@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { PLAYERS, getTierColor, getTierLabel, calculateTrend, type PlayerData } from "@/data/players";
+import { getTierColor, getTierLabel, calculateTrend } from "@/data/players";
+import { getTierPlayers, DEMO_NUM_TIERS, DEMO_PLAYERS_PER_TIER } from "@/lib/tier-assignments";
 import { useWatchlist } from "@/lib/watchlist";
 import { getPlayerGroupTags } from "@/lib/player-groups";
 import { cn } from "@/lib/utils";
 import {
-  ClipboardList,
   Lock,
   Check,
   ChevronRight,
@@ -17,14 +17,11 @@ import {
   TrendingUp,
   TrendingDown,
   Search,
-  X,
   Eye,
   AlertCircle,
   Trophy,
   Save,
 } from "lucide-react";
-
-const NUM_TIERS = 9;
 
 export default function PicksPage() {
   return (
@@ -45,20 +42,49 @@ function PicksContent() {
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const { toggle: toggleWatchlist, isWatchlisted, watchlist } = useWatchlist();
+  // Pool tier config — defaults to demo values, overridden by pool config when available
+  const [numTiers, setNumTiers] = useState(DEMO_NUM_TIERS);
+  const [playersPerTier, setPlayersPerTier] = useState(DEMO_PLAYERS_PER_TIER);
+  const { toggle: toggleWatchlist, isWatchlisted } = useWatchlist();
+
+  // Load pool config (tier settings) + existing picks on mount
+  useEffect(() => {
+    if (!poolSlug) return;
+    // Fetch pool config for tier settings
+    fetch(`/api/pools/${poolSlug}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.numTiers) setNumTiers(data.numTiers);
+        if (data.playersPerTier) setPlayersPerTier(data.playersPerTier);
+      })
+      .catch(() => {});
+    // Fetch existing picks
+    fetch(`/api/pools/${poolSlug}/picks`)
+      .then((r) => r.json())
+      .then((data) => {
+        const pick = data.picks?.[0];
+        if (!pick?.golfer_picks) return;
+        const loaded: Record<number, string> = {};
+        for (const [key, name] of Object.entries(pick.golfer_picks as Record<string, string>)) {
+          const n = parseInt(key.replace("tier-", ""));
+          if (!isNaN(n)) loaded[n] = name as string;
+        }
+        if (Object.keys(loaded).length > 0) setPicks(loaded);
+      })
+      .catch(() => {});
+  }, [poolSlug]);
 
   const tierPlayers = useMemo(() => {
-    return PLAYERS.filter((p) => p.tier === currentTier)
+    return getTierPlayers(currentTier, playersPerTier)
       .filter((p) => {
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
         const matchesWatchlist = !showWatchlistOnly || isWatchlisted(p.name);
         return matchesSearch && matchesWatchlist;
-      })
-      .sort((a, b) => a.currentRank - b.currentRank);
-  }, [currentTier, search, showWatchlistOnly, isWatchlisted]);
+      });
+  }, [currentTier, playersPerTier, search, showWatchlistOnly, isWatchlisted]);
 
   const totalPicks = Object.keys(picks).length;
-  const isComplete = totalPicks === NUM_TIERS;
+  const isComplete = totalPicks === numTiers;
   const currentPick = picks[currentTier] || null;
 
   function selectPlayer(name: string) {
@@ -121,7 +147,7 @@ function PicksContent() {
               {Object.entries(picks)
                 .sort(([a], [b]) => Number(a) - Number(b))
                 .map(([tier, name]) => {
-                  const player = PLAYERS.find((p) => p.name === name);
+                  const player = getTierPlayers(Number(tier), playersPerTier).find((p) => p.name === name);
                   return (
                     <div key={tier} className="flex items-center gap-2 rounded-lg border border-border p-3">
                       <span className={cn("flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-bold", getTierColor(Number(tier)))}>
@@ -154,7 +180,7 @@ function PicksContent() {
           My Picks
         </h1>
         <p className="text-muted mt-1">
-          Select 1 golfer from each of the {NUM_TIERS} tiers
+          Select 1 golfer from each of the {numTiers} tiers
         </p>
       </div>
 
@@ -165,22 +191,22 @@ function PicksContent() {
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-heading font-bold text-foreground text-sm">Your Lineup</h3>
-              <span className="text-xs font-mono text-muted">{totalPicks}/{NUM_TIERS}</span>
+              <span className="text-xs font-mono text-muted">{totalPicks}/{numTiers}</span>
             </div>
 
             {/* Progress bar */}
             <div className="h-2 rounded-full bg-bg-muted overflow-hidden">
               <div
                 className="h-full rounded-full bg-masters-green transition-all duration-500"
-                style={{ width: `${(totalPicks / NUM_TIERS) * 100}%` }}
+                style={{ width: `${(totalPicks / numTiers) * 100}%` }}
               />
             </div>
 
             {/* Tier list */}
             <div className="space-y-1">
-              {Array.from({ length: NUM_TIERS }, (_, i) => i + 1).map((tier) => {
+              {Array.from({ length: numTiers }, (_, i) => i + 1).map((tier) => {
                 const picked = picks[tier];
-                const player = picked ? PLAYERS.find((p) => p.name === picked) : null;
+                const player = picked ? getTierPlayers(tier, playersPerTier).find((p) => p.name === picked) : null;
                 const isActive = tier === currentTier;
 
                 return (
@@ -245,7 +271,7 @@ function PicksContent() {
               )}
             >
               <Save className="h-4 w-4" />
-              {isComplete ? "Submit Picks" : `${NUM_TIERS - totalPicks} picks remaining`}
+              {isComplete ? "Submit Picks" : `${numTiers - totalPicks} picks remaining`}
             </button>
           </Card>
         </div>
@@ -270,10 +296,10 @@ function PicksContent() {
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <span className="text-sm font-mono text-muted">{currentTier}/{NUM_TIERS}</span>
+              <span className="text-sm font-mono text-muted">{currentTier}/{numTiers}</span>
               <button
-                onClick={() => { setCurrentTier(Math.min(NUM_TIERS, currentTier + 1)); setSearch(""); setExpandedPlayer(null); }}
-                disabled={currentTier === NUM_TIERS}
+                onClick={() => { setCurrentTier(Math.min(numTiers, currentTier + 1)); setSearch(""); setExpandedPlayer(null); }}
+                disabled={currentTier === numTiers}
                 className="p-2 rounded-lg hover:bg-bg-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
               >
                 <ChevronRight className="h-5 w-5" />
@@ -445,7 +471,7 @@ function PicksContent() {
               Tier {currentTier - 1}
             </button>
 
-            {currentPick && currentTier < NUM_TIERS && (
+            {currentPick && currentTier < numTiers && (
               <button
                 onClick={() => { setCurrentTier(currentTier + 1); setSearch(""); setExpandedPlayer(null); }}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-masters-green text-white text-sm font-bold transition-all hover:bg-masters-green/90 active:scale-[0.98] cursor-pointer"
@@ -455,7 +481,7 @@ function PicksContent() {
               </button>
             )}
 
-            {!currentPick && currentTier < NUM_TIERS && (
+            {!currentPick && currentTier < numTiers && (
               <button
                 onClick={() => { setCurrentTier(currentTier + 1); setSearch(""); setExpandedPlayer(null); }}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-bg-muted cursor-pointer transition-all"
@@ -465,7 +491,7 @@ function PicksContent() {
               </button>
             )}
 
-            {currentTier === NUM_TIERS && (
+            {currentTier === numTiers && (
               <button
                 onClick={handleSubmit}
                 disabled={!isComplete}
@@ -477,7 +503,7 @@ function PicksContent() {
                 )}
               >
                 <Trophy className="h-4 w-4" />
-                {isComplete ? "Submit Picks" : `${NUM_TIERS - totalPicks} remaining`}
+                {isComplete ? "Submit Picks" : `${numTiers - totalPicks} remaining`}
               </button>
             )}
           </div>
