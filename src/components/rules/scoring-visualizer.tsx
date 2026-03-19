@@ -8,7 +8,7 @@ interface Golfer {
   tier: number
   score: number
   missedCut: boolean
-  scoreVersion: number // incremented to re-trigger score animation
+  scoreVersion: number
 }
 
 const INITIAL_GOLFERS: Golfer[] = [
@@ -23,6 +23,7 @@ const INITIAL_GOLFERS: Golfer[] = [
   { name: "Min Woo Lee",       tier: 9, score:  5, missedCut: false, scoreVersion: 0 },
 ]
 
+const COUNTING_COUNT = 4
 const CUT_SCORE = 3
 
 const TIER_COLORS: Record<number, string> = {
@@ -37,9 +38,10 @@ const TIER_COLORS: Record<number, string> = {
   9: "bg-emerald-500 text-white",
 }
 
-const ROW_HEIGHT = 56  // px per row
-const ROW_GAP = 4      // px between rows
-const CUT_LINE_HEIGHT = 28 // px for the cut line separator
+const ROW_HEIGHT = 56
+const ROW_GAP = 4
+const ZONE_HEADER_HEIGHT = 28
+const BENCH_DIVIDER_HEIGHT = 36
 
 function formatScore(score: number): string {
   if (score === 0) return "E"
@@ -60,39 +62,49 @@ function getEffectiveScore(golfer: Golfer): number {
   return golfer.missedCut ? CUT_SCORE : golfer.score
 }
 
+// Maps sorted index → pixel top
 function getTopOffset(index: number): number {
-  const base = index * (ROW_HEIGHT + ROW_GAP)
-  // Add space for the cut line separator after index 3
-  return index <= 3 ? base : base + CUT_LINE_HEIGHT
+  if (index < COUNTING_COUNT) {
+    // inside counting zone: after the "COUNTING" header
+    return ZONE_HEADER_HEIGHT + index * (ROW_HEIGHT + ROW_GAP)
+  }
+  // inside bench zone: after counting rows + bench divider header
+  const countingHeight = ZONE_HEADER_HEIGHT + COUNTING_COUNT * (ROW_HEIGHT + ROW_GAP)
+  const benchStart = countingHeight + BENCH_DIVIDER_HEIGHT
+  return benchStart + (index - COUNTING_COUNT) * (ROW_HEIGHT + ROW_GAP)
 }
 
 const CONTAINER_HEIGHT =
-  9 * (ROW_HEIGHT + ROW_GAP) + CUT_LINE_HEIGHT
+  ZONE_HEADER_HEIGHT +
+  COUNTING_COUNT * (ROW_HEIGHT + ROW_GAP) +
+  BENCH_DIVIDER_HEIGHT +
+  (INITIAL_GOLFERS.length - COUNTING_COUNT) * (ROW_HEIGHT + ROW_GAP)
 
-// Position of the cut line divider
-const CUT_LINE_TOP = 4 * (ROW_HEIGHT + ROW_GAP)
+// Y position for the bench divider block
+const BENCH_DIVIDER_TOP =
+  ZONE_HEADER_HEIGHT + COUNTING_COUNT * (ROW_HEIGHT + ROW_GAP)
 
-interface RankDelta {
-  delta: number
-  id: number
-}
+type CrossingType = "to-counting" | "to-bench"
 
 export function ScoringVisualizer() {
   const [golfers, setGolfers] = useState<Golfer[]>(INITIAL_GOLFERS)
   const [isPlaying, setIsPlaying] = useState(true)
   const [missedCutMode, setMissedCutMode] = useState(false)
-  const [rankDeltas, setRankDeltas] = useState<Record<string, RankDelta>>({})
+  const [rankDeltas, setRankDeltas] = useState<Record<string, { delta: number; id: number }>>({})
+  const [crossings, setCrossings] = useState<Record<string, { type: CrossingType; id: number }>>({})
   const [poolScoreFlash, setPoolScoreFlash] = useState<"better" | "worse" | null>(null)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const prevSortedNamesRef = useRef<string[]>([])
+  const prevCountingNamesRef = useRef<Set<string>>(new Set())
   const prevPoolScoreRef = useRef<number | null>(null)
   const flashIdRef = useRef(0)
 
   const sorted = getSortedGolfers(golfers)
-  const top4 = sorted.slice(0, 4)
+  const top4 = sorted.slice(0, COUNTING_COUNT)
   const top4Names = new Set(top4.map((g) => g.name))
   const poolScore = top4.reduce((sum, g) => sum + getEffectiveScore(g), 0)
+  const cutoffScore = sorted[COUNTING_COUNT - 1]?.score ?? 0 // 4th place score = bench threshold
 
   const simulateUpdate = useCallback(() => {
     setGolfers((prev) => {
@@ -107,10 +119,9 @@ export function ScoringVisualizer() {
         ;[indices[i], indices[j]] = [indices[j], indices[i]]
       }
       const toChange = indices.slice(0, Math.min(numChanges, eligible.length))
-
       for (const idx of toChange) {
         const golfer = eligible[idx]
-        const delta = Math.floor(Math.random() * 5) - 2 // -2 to +2
+        const delta = Math.floor(Math.random() * 5) - 2
         const found = next.find((g) => g.name === golfer.name)
         if (found) {
           found.score = Math.max(-15, Math.min(15, found.score + delta))
@@ -121,31 +132,45 @@ export function ScoringVisualizer() {
     })
   }, [])
 
-  // Detect rank changes and pool score changes after each update
+  // Detect rank changes + bench/counting crossings
   useEffect(() => {
     const newSortedNames = sorted.map((g) => g.name)
     const prev = prevSortedNamesRef.current
+    const prevCounting = prevCountingNamesRef.current
 
-    // Detect rank changes
     if (prev.length > 0) {
-      const newDeltas: Record<string, RankDelta> = {}
+      const newDeltas: Record<string, { delta: number; id: number }> = {}
+      const newCrossings: Record<string, { type: CrossingType; id: number }> = {}
+
       newSortedNames.forEach((name, newIdx) => {
         const prevIdx = prev.indexOf(name)
         if (prevIdx !== -1 && prevIdx !== newIdx) {
           flashIdRef.current += 1
-          newDeltas[name] = {
-            delta: prevIdx - newIdx, // positive = moved up (improved rank)
-            id: flashIdRef.current,
-          }
+          newDeltas[name] = { delta: prevIdx - newIdx, id: flashIdRef.current }
+        }
+        const wasCounting = prevCounting.has(name)
+        const isCounting = top4Names.has(name)
+        if (!wasCounting && isCounting) {
+          flashIdRef.current += 1
+          newCrossings[name] = { type: "to-counting", id: flashIdRef.current }
+        } else if (wasCounting && !isCounting) {
+          flashIdRef.current += 1
+          newCrossings[name] = { type: "to-bench", id: flashIdRef.current }
         }
       })
+
       if (Object.keys(newDeltas).length > 0) {
         setRankDeltas(newDeltas)
         setTimeout(() => setRankDeltas({}), 1800)
       }
+      if (Object.keys(newCrossings).length > 0) {
+        setCrossings(newCrossings)
+        setTimeout(() => setCrossings({}), 2000)
+      }
     }
 
     prevSortedNamesRef.current = newSortedNames
+    prevCountingNamesRef.current = new Set(top4Names)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [golfers])
 
@@ -160,7 +185,7 @@ export function ScoringVisualizer() {
 
   useEffect(() => {
     if (isPlaying) {
-      intervalRef.current = setInterval(simulateUpdate, 2500)
+      intervalRef.current = setInterval(simulateUpdate, 1600)
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
@@ -171,11 +196,11 @@ export function ScoringVisualizer() {
     setGolfers(INITIAL_GOLFERS)
     setMissedCutMode(false)
     prevSortedNamesRef.current = []
+    prevCountingNamesRef.current = new Set()
     setRankDeltas({})
+    setCrossings({})
     setPoolScoreFlash(null)
   }
-
-  const handleTogglePlay = () => setIsPlaying((p) => !p)
 
   const handleMissedCutToggle = () => {
     setMissedCutMode((prev) => {
@@ -183,8 +208,8 @@ export function ScoringVisualizer() {
       setGolfers((g) =>
         g.map((golfer, i) => ({
           ...golfer,
-          missedCut: next && i >= 4,
-          scoreVersion: next && i >= 4 ? golfer.scoreVersion + 1 : golfer.scoreVersion,
+          missedCut: next && i >= COUNTING_COUNT,
+          scoreVersion: next && i >= COUNTING_COUNT ? golfer.scoreVersion + 1 : golfer.scoreVersion,
         }))
       )
       return next
@@ -192,75 +217,65 @@ export function ScoringVisualizer() {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6">
+    <div className="w-full max-w-3xl mx-auto space-y-5">
       {/* Pool Score */}
-      <div className="text-center space-y-1.5">
-        <span className="text-xs font-semibold text-muted uppercase tracking-wider">
-          Your Pool Score
-        </span>
-        <div className="flex items-center justify-center gap-3">
-          <div
-            className={cn(
-              "font-heading text-6xl font-bold transition-colors duration-300",
-              poolScore < 0 ? "text-score-under" : poolScore > 0 ? "text-score-over" : "text-foreground",
-              poolScoreFlash === "better" && "animate-[score-pulse-green_0.6s_ease-out]",
-              poolScoreFlash === "worse"  && "animate-[score-pulse-red_0.6s_ease-out]",
-            )}
-          >
-            {formatScore(poolScore)}
-          </div>
-          {poolScoreFlash && (
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-masters-green px-5 py-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-1">Your Pool Score</p>
+          <div className="flex items-center gap-2">
             <span
-              key={String(poolScore)}
               className={cn(
-                "text-xl font-bold animate-[fade-slide-up_0.9s_ease-out_forwards]",
-                poolScoreFlash === "better" ? "text-success" : "text-danger"
+                "font-heading text-4xl font-bold text-white transition-colors duration-300",
+                poolScoreFlash === "better" && "animate-[score-pulse-green_0.6s_ease-out]",
+                poolScoreFlash === "worse"  && "animate-[score-pulse-red_0.6s_ease-out]",
               )}
             >
-              {poolScoreFlash === "better" ? "▼" : "▲"}
+              {formatScore(poolScore)}
             </span>
-          )}
+            {poolScoreFlash && (
+              <span
+                key={String(poolScore)}
+                className={cn(
+                  "text-lg font-bold animate-[fade-slide-up_0.9s_ease-out_forwards]",
+                  poolScoreFlash === "better" ? "text-emerald-300" : "text-red-300"
+                )}
+              >
+                {poolScoreFlash === "better" ? "▼" : "▲"}
+              </span>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-muted">Best 4 of 9 scores count · Lower is better</p>
+        <div className="text-right">
+          <p className="text-xs text-white/50 font-medium">Bench cutoff</p>
+          <p className="font-mono font-bold text-white/80 text-lg">{formatScore(cutoffScore)}</p>
+          <p className="text-[10px] text-white/40 mt-0.5">4th place score</p>
+        </div>
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={handleTogglePlay}
+          onClick={() => setIsPlaying((p) => !p)}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer",
             isPlaying
-              ? "bg-masters-green text-white hover:bg-masters-green-dark"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              ? "bg-masters-green text-white hover:bg-masters-green/90"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           )}
         >
           {isPlaying ? (
-            <>
-              <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16" rx="1" />
-                <rect x="14" y="4" width="4" height="16" rx="1" />
-              </svg>
-              Pause
-            </>
+            <><svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>Pause</>
           ) : (
-            <>
-              <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Play
-            </>
+            <><svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>Play</>
           )}
         </button>
         <button
           onClick={handleReset}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-300 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 cursor-pointer transition-colors"
         >
           <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64L21 8" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M21 3v5h-5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.36-2.64L3 16" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M3 21v-5h5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Reset
         </button>
@@ -269,8 +284,8 @@ export function ScoringVisualizer() {
           className={cn(
             "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer",
             missedCutMode
-              ? "bg-score-over text-white hover:bg-red-700"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           )}
         >
           <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -279,69 +294,93 @@ export function ScoringVisualizer() {
           </svg>
           Simulate Missed Cut
         </button>
+
+        {missedCutMode && (
+          <span className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-full px-3 py-1">
+            +{CUT_SCORE} applied as replacement
+          </span>
+        )}
       </div>
 
-      {missedCutMode && (
-        <div className="rounded-lg border border-score-over/20 bg-red-50 px-4 py-2.5 text-center text-sm text-score-over">
-          Cut score (+{CUT_SCORE}) applied as replacement for missed-cut players
+      {/* "Your Team" bracket */}
+      <div className="relative rounded-2xl border border-masters-green/20 bg-white/50 px-3 pt-5 pb-3">
+        {/* bracket label */}
+        <div className="absolute top-2 left-4 flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-masters-green/40" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-masters-green/50">
+            Your Team · 9 golfers
+          </span>
         </div>
-      )}
 
-      {/* Animated list — absolute positioning enables smooth reorder */}
-      <div className="relative select-none" style={{ height: CONTAINER_HEIGHT }}>
-        {/* Cut line — fixed between positions 4 and 5 */}
+        {/* Animated list */}
+        <div className="relative select-none" style={{ height: CONTAINER_HEIGHT }}>
+
+        {/* "COUNTING" zone header — fixed at top */}
+        <div
+          className="absolute left-0 right-0 flex items-center gap-2 z-10"
+          style={{ top: 0, height: ZONE_HEADER_HEIGHT }}
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-masters-green" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-masters-green">
+              Counting · Best {COUNTING_COUNT} of {INITIAL_GOLFERS.length}
+            </span>
+          </div>
+        </div>
+
+        {/* Bench zone divider — floats between counting & bench rows */}
         <div
           className="absolute left-0 right-0 z-10 flex items-center gap-2 transition-all duration-500"
-          style={{ top: CUT_LINE_TOP, height: CUT_LINE_HEIGHT }}
+          style={{ top: BENCH_DIVIDER_TOP, height: BENCH_DIVIDER_HEIGHT }}
         >
-          <div className="h-px flex-1 bg-score-over/35" />
-          <span className="shrink-0 rounded bg-score-over/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-score-over">
-            Cut Line
+          <div className="h-px flex-1 bg-gray-300" />
+          <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-200 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+            Bench
           </span>
-          <div className="h-px flex-1 bg-score-over/35" />
+          <div className="h-px flex-1 bg-gray-300" />
         </div>
 
+        {/* Golfer rows */}
         {sorted.map((golfer, index) => {
           const isCounting = top4Names.has(golfer.name)
           const rankDelta = rankDeltas[golfer.name]
+          const crossing = crossings[golfer.name]
 
           return (
             <div
               key={golfer.name}
               className={cn(
-                "absolute left-0 right-0 flex items-center gap-2 sm:gap-3 rounded-lg px-2.5 sm:px-4",
+                "absolute left-0 right-0 flex items-center gap-2 sm:gap-3 rounded-xl px-2.5 sm:px-4",
                 "transition-[top] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
                 isCounting && !golfer.missedCut
-                  ? "bg-masters-green text-white shadow-[0_2px_12px_rgba(2,89,40,0.3)]"
+                  ? "bg-masters-green text-white shadow-[0_2px_12px_rgba(2,89,40,0.25)]"
                   : isCounting && golfer.missedCut
-                    ? "bg-masters-green/80 text-white"
-                    : "bg-gray-100 text-gray-500",
-                !isCounting && "opacity-70",
+                    ? "bg-masters-green/70 text-white"
+                    : "bg-gray-100 text-gray-400",
                 rankDelta && rankDelta.delta > 0 && "animate-[row-flash-up_0.7s_ease-out]",
                 rankDelta && rankDelta.delta < 0 && "animate-[row-flash-down_0.7s_ease-out]",
+                crossing?.type === "to-counting" && "animate-[row-flash-counting_0.8s_ease-out]",
+                crossing?.type === "to-bench" && "animate-[row-flash-bench_0.8s_ease-out]",
               )}
               style={{
                 top: getTopOffset(index),
                 height: ROW_HEIGHT,
               }}
             >
-              {/* Rank number */}
-              <span
-                className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  isCounting ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-                )}
-              >
+              {/* Rank */}
+              <span className={cn(
+                "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                isCounting ? "bg-white/20 text-white" : "bg-gray-200 text-gray-400"
+              )}>
                 {index + 1}
               </span>
 
               {/* Tier badge */}
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                  TIER_COLORS[golfer.tier]
-                )}
-              >
+              <span className={cn(
+                "hidden sm:inline-flex shrink-0 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                TIER_COLORS[golfer.tier]
+              )}>
                 T{golfer.tier}
               </span>
 
@@ -350,58 +389,59 @@ export function ScoringVisualizer() {
                 {golfer.name}
               </span>
 
-              {/* Rank change badge — fades out after appearing */}
-              {rankDelta && (
+              {/* Crossing badge — "↑ COUNTING" or "↓ BENCH" */}
+              {crossing && (
+                <span
+                  key={crossing.id}
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold animate-[fade-slide-up_2s_ease-out_forwards]",
+                    crossing.type === "to-counting"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-gray-200 text-gray-500"
+                  )}
+                >
+                  {crossing.type === "to-counting" ? "▲ Counting" : "▼ Bench"}
+                </span>
+              )}
+
+              {/* Rank change delta */}
+              {!crossing && rankDelta && (
                 <span
                   key={rankDelta.id}
                   className={cn(
                     "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold animate-[fade-slide-up_1.6s_ease-out_forwards]",
-                    rankDelta.delta > 0
-                      ? "bg-success/25 text-success"
-                      : "bg-danger/20 text-danger"
+                    rankDelta.delta > 0 ? "bg-white/20 text-white" : "bg-black/10 text-white/70"
                   )}
                 >
-                  {rankDelta.delta > 0
-                    ? `▲${rankDelta.delta}`
-                    : `▼${Math.abs(rankDelta.delta)}`}
+                  {rankDelta.delta > 0 ? `▲${rankDelta.delta}` : `▼${Math.abs(rankDelta.delta)}`}
                 </span>
               )}
 
-              {/* Score badge — keyed to re-trigger animation */}
+              {/* Score badge */}
               <span
                 key={`${golfer.name}-v${golfer.scoreVersion}`}
                 className={cn(
-                  "shrink-0 rounded-md px-2.5 py-1 text-sm font-bold font-mono tabular-nums",
+                  "shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold font-mono tabular-nums min-w-[48px] text-center",
                   golfer.missedCut
-                    ? "bg-gray-300/30 text-gray-400 line-through decoration-1"
+                    ? "bg-gray-200/50 text-gray-400 line-through"
                     : isCounting
                       ? "bg-white/15 text-white animate-[pulse-score_0.5s_ease-out]"
-                      : "bg-gray-200 text-gray-500 animate-[pulse-score-bench_0.5s_ease-out]",
+                      : "bg-gray-200 text-gray-400 animate-[pulse-score-bench_0.5s_ease-out]"
                 )}
               >
                 {golfer.missedCut ? "MC" : formatScore(golfer.score)}
               </span>
 
-              {/* MC effective score */}
               {golfer.missedCut && isCounting && (
-                <span className="shrink-0 rounded-md bg-white/15 px-2.5 py-1 text-sm font-bold font-mono tabular-nums">
+                <span className="shrink-0 rounded-lg bg-white/15 px-2.5 py-1 text-sm font-bold font-mono">
                   +{CUT_SCORE}
                 </span>
               )}
-
-              {/* Counting / Bench label */}
-              <span
-                className={cn(
-                  "hidden sm:inline shrink-0 text-[10px] font-semibold uppercase tracking-wider w-14 text-right",
-                  isCounting ? "text-white/90" : "text-gray-400"
-                )}
-              >
-                {isCounting ? "Counting" : "Bench"}
-              </span>
             </div>
           )
         })}
-      </div>
+        </div>{/* end animated list */}
+      </div>{/* end Your Team bracket */}
 
       <style>{`
         @keyframes pulse-score {
@@ -427,14 +467,23 @@ export function ScoringVisualizer() {
           0%   { box-shadow: inset 0 0 0 2px rgba(220,38,38,0.5); }
           100% { box-shadow: inset 0 0 0 2px rgba(220,38,38,0); }
         }
+        @keyframes row-flash-counting {
+          0%   { box-shadow: 0 0 0 3px rgba(2,89,40,0.7), inset 0 0 0 2px rgba(255,255,255,0.4); }
+          50%  { box-shadow: 0 0 0 6px rgba(2,89,40,0.2), inset 0 0 0 2px rgba(255,255,255,0.2); }
+          100% { box-shadow: 0 0 0 0px rgba(2,89,40,0); }
+        }
+        @keyframes row-flash-bench {
+          0%   { box-shadow: 0 0 0 3px rgba(156,163,175,0.7); }
+          100% { box-shadow: 0 0 0 0px rgba(156,163,175,0); }
+        }
         @keyframes score-pulse-green {
           0%   { transform: scale(1); }
-          40%  { transform: scale(1.06); filter: drop-shadow(0 0 10px rgba(2,89,40,0.5)); }
+          40%  { transform: scale(1.06); filter: drop-shadow(0 0 10px rgba(255,255,255,0.6)); }
           100% { transform: scale(1); }
         }
         @keyframes score-pulse-red {
           0%   { transform: scale(1); }
-          40%  { transform: scale(1.06); filter: drop-shadow(0 0 10px rgba(220,38,38,0.4)); }
+          40%  { transform: scale(1.06); filter: drop-shadow(0 0 10px rgba(255,100,100,0.5)); }
           100% { transform: scale(1); }
         }
       `}</style>
