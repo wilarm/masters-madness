@@ -37,7 +37,7 @@ function HeroSection() {
         />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         {/* Left: Text content */}
         <div>
           {/* Badge */}
@@ -274,9 +274,9 @@ const STATS = [
 // ─── How It Works ──────────────────────────────────────────────────────────────
 function HowItWorksSection() {
   return (
-    <section className="py-20 sm:py-28 bg-[var(--color-bg)]">
+    <section className="py-12 sm:py-16 bg-[var(--color-bg)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <p className="text-masters-green text-sm font-bold uppercase tracking-widest mb-3">
             Getting Started
           </p>
@@ -342,7 +342,7 @@ const HOW_STEPS = [
 // ─── Scoring Explainer ─────────────────────────────────────────────────────────
 function ScoringExplainerSection() {
   return (
-    <section className="py-20 sm:py-28 bg-white border-t border-border">
+    <section className="py-12 sm:py-16 bg-white border-t border-border">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-10">
@@ -392,9 +392,9 @@ const SCORING_PILLS = [
 // ─── Features Grid ─────────────────────────────────────────────────────────────
 function FeaturesSection() {
   return (
-    <section className="py-20 sm:py-28 bg-white">
+    <section className="py-12 sm:py-16 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <p className="text-masters-green text-sm font-bold uppercase tracking-widest mb-3">
             Everything You Need
           </p>
@@ -502,7 +502,7 @@ const FEATURES = [
 // ─── Live Pool Preview ─────────────────────────────────────────────────────────
 function PoolPreviewSection() {
   return (
-    <section className="py-20 sm:py-28 bg-[var(--color-bg)]">
+    <section className="py-12 sm:py-16 bg-[var(--color-bg)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         {/* Left: Copy */}
         <div>
@@ -722,7 +722,7 @@ function MockTableRow({
 // ─── Research Preview ──────────────────────────────────────────────────────────
 function ResearchPreviewSection() {
   return (
-    <section className="py-20 sm:py-28 bg-white">
+    <section className="py-12 sm:py-16 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         {/* Right: Cards (shown first on mobile via order) */}
         <div className="order-2 lg:order-1 grid sm:grid-cols-3 gap-4">
@@ -840,7 +840,7 @@ function ResearchPlayerCard({
 // ─── Founding Members ──────────────────────────────────────────────────────────
 function FoundingMembersSection() {
   return (
-    <section className="py-20 sm:py-28 bg-[var(--color-bg)]">
+    <section className="py-12 sm:py-16 bg-[var(--color-bg)]">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
         <div
           className="rounded-3xl px-8 py-14 sm:py-16 relative overflow-hidden"
@@ -903,7 +903,7 @@ function FoundingMembersSection() {
 // ─── Final CTA ─────────────────────────────────────────────────────────────────
 function FinalCTASection() {
   return (
-    <section className="py-20 sm:py-28 bg-masters-green relative overflow-hidden">
+    <section className="py-12 sm:py-16 bg-masters-green relative overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
