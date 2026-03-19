@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, Users, Calendar, Info } from "lucide-react";
+import { Trophy, TrendingUp, Users, Calendar, Info, Medal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Countdown } from "@/components/ui/countdown";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -6,16 +6,50 @@ import { StandingsShell } from "@/components/standings/standings-shell";
 import { getPoolState, poolStateLabel, poolStateDotColor } from "@/lib/pool-state";
 import { auth } from "@clerk/nextjs/server";
 import { isPlatformAdmin } from "@/lib/auth";
+import { getPoolBySlug } from "@/lib/db/pools";
+import { DEFAULT_RULES, type PayoutRow } from "@/lib/db/settings";
 
 // Tournament deadline: Thursday, April 9, 2026 5:00 AM MT (11:00 AM UTC)
 const PICKS_DEADLINE = new Date("2026-04-09T11:00:00Z");
 
-export default async function StandingsPage() {
+// Medal colors for 1st / 2nd / 3rd / beyond
+const MEDAL: Record<number, { dot: string; label: string }> = {
+  0: { dot: "bg-masters-gold", label: "text-masters-gold-dark" },
+  1: { dot: "bg-slate-400", label: "text-slate-500" },
+  2: { dot: "bg-amber-600", label: "text-amber-700" },
+};
+
+export default async function StandingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pool?: string }>;
+}) {
   const poolState = getPoolState();
   const { userId } = await auth();
-  // Platform admins always get commissioner view.
-  // TODO Phase 15: also check pool_members.role = "commissioner" for pool-specific access.
   const isCommissioner = !!userId && isPlatformAdmin(userId);
+
+  // Resolve pool-specific config if ?pool= is present
+  const { pool: poolSlug } = await searchParams;
+  const pool = poolSlug ? await getPoolBySlug(poolSlug) : null;
+  const cfg = (pool?.config ?? {}) as Record<string, unknown>;
+
+  // Payouts: pool config overrides default
+  const payouts: PayoutRow[] =
+    Array.isArray(cfg.payouts) && cfg.payouts.length > 0
+      ? (cfg.payouts as PayoutRow[])
+      : DEFAULT_RULES.payouts;
+
+  // Prize pool display
+  const prizePool: string =
+    typeof cfg.prizePool === "string"
+      ? cfg.prizePool
+      : DEFAULT_RULES.payouts
+          .reduce((sum, p) => {
+            const n = parseFloat(p.amount.replace(/[^0-9.]/g, ""));
+            return sum + (isNaN(n) ? 0 : n);
+          }, 0)
+          .toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -44,12 +78,13 @@ export default async function StandingsPage() {
               </div>
             </div>
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
-              Masters Madness
+              {pool ? pool.name : "Masters Madness"}
               <span className="block text-masters-gold mt-1">2026</span>
             </h1>
             <p className="text-lg sm:text-xl text-white/80 max-w-2xl mx-auto mb-8">
-              The premier fantasy golf tournament pool. Pick your golfers,
-              track live scores, and compete for glory at Augusta National.
+              {pool
+                ? "Pick your golfers, track live scores, and compete for the prize pool."
+                : "The premier fantasy golf tournament pool. Pick your golfers, track live scores, and compete for glory at Augusta National."}
             </p>
           </div>
         </div>
@@ -83,15 +118,11 @@ export default async function StandingsPage() {
           <StatCard
             icon={Trophy}
             label="Prize Pool"
-            value="$1,500"
+            value={prizePool}
             accent
           />
-          <StatCard
-            icon={Users}
-            label="Entries"
-            value="—"
-            sublabel="Accepting entries"
-          />
+          {/* Payouts card — replaces Entries */}
+          <PayoutsCard payouts={payouts} />
           <StatCard
             icon={TrendingUp}
             label="2025 Winner"
@@ -148,6 +179,44 @@ export default async function StandingsPage() {
   );
 }
 
+// ── Payouts Card ──────────────────────────────────────────────────────────────
+function PayoutsCard({ payouts }: { payouts: PayoutRow[] }) {
+  // Show at most 3 rows to keep the card compact; overflow gets "…"
+  const visible = payouts.slice(0, 3);
+  const overflow = payouts.length - visible.length;
+
+  return (
+    <Card className="flex flex-col">
+      <div className="inline-flex items-center justify-center h-10 w-10 rounded-lg mb-3 bg-masters-green-light text-masters-green">
+        <Medal className="h-5 w-5" />
+      </div>
+      <p className="text-sm text-muted font-semibold mb-2">Payouts</p>
+      <div className="space-y-1.5 flex-1">
+        {visible.map((row, i) => {
+          const medal = MEDAL[i] ?? { dot: "bg-muted", label: "text-muted" };
+          return (
+            <div key={row.place} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className={cn("h-2 w-2 rounded-full flex-shrink-0", medal.dot)} />
+                <span className={cn("text-xs font-semibold", medal.label)}>
+                  {row.place}
+                </span>
+              </div>
+              <span className="font-heading text-sm font-bold text-foreground tabular-nums">
+                {row.amount}
+              </span>
+            </div>
+          );
+        })}
+        {overflow > 0 && (
+          <p className="text-[11px] text-muted/60 pt-0.5">+{overflow} more place{overflow > 1 ? "s" : ""}</p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ── Generic Stat Card ─────────────────────────────────────────────────────────
 function StatCard({
   icon: Icon,
   label,
