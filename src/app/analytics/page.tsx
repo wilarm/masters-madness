@@ -13,8 +13,8 @@ export default async function AnalyticsPage() {
       <AnalyticsShell
         poolState={poolState}
         isCommissioner={isCommissioner}
-        showDemoToggle
-        defaultDemo
+        showDemoToggle={!userId}
+        defaultDemo={!userId}
       />
     </div>
   );

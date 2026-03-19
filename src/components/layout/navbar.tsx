@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { StartPoolButton } from "@/components/ui/start-pool-button";
+import { PoolSwitcher } from "@/components/layout/pool-switcher";
 import {
   Trophy,
   BarChart3,
@@ -38,15 +39,18 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
-              M
-            </div>
-            <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
-              Masters Madness
-            </span>
-          </Link>
+          {/* Logo + Pool Switcher */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
+                M
+              </div>
+              <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
+                Masters Madness
+              </span>
+            </Link>
+            {showUserButton && <PoolSwitcher />}
+          </div>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">

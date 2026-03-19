@@ -3,7 +3,7 @@
 **Tournament:** April 9–12, 2026 · **Picks Lock:** April 9, 2026 @ 5:00 AM MT
 **Live URL:** https://mastersmadness.com
 **Supabase Project:** amrwikktihzaafqbiawi (us-west-2)
-**Last updated:** 2026-03-18
+**Last updated:** 2026-03-18 (session 2)
 
 ---
 
@@ -136,13 +136,18 @@
 - [ ] Score display on pool page (ScoreBadge, movement arrows)
 - [ ] `getPoolState()` auto-transitions: `pre_lock` → `post_lock` → `in_progress` → `complete`
 
-### Phase 16 — Supabase RLS Policies 🟡 MEDIUM
+### Phase 16 — Supabase RLS Policies ✅ (completed 2026-03-18 session 2)
 **Goal:** Lock down DB so anon/client-side can't read other users' picks
-- [ ] `pools` — public read for pool info; write only by creator
-- [ ] `pool_members` — read by pool members only; insert by anyone (join); update by commissioner
-- [ ] `picks` — pre-lock: read/write own picks only; post-lock: read all (for standings), write by commissioner only
-- [ ] `scores` — public read
-- [ ] `golfers` — public read
+- [x] `pools` — public read for public pools; write by creator
+- [x] `pool_members` — member-read, self-insert, commissioner update/delete; `display_name`/`custom_tag` columns ensured
+- [x] `picks` — owner read/insert/update; commissioner read; post-lock read by pool members
+- [x] `scores` / `golfers` — public read
+- [x] `settings` — deny-all public; service role only
+- [x] Migration `003_rls_policies.sql` — idempotent `DO $$ ... $$` blocks, architecture note explaining Clerk+service-role pattern
+- [x] **Navbar pool switcher** — `PoolSwitcher` component fetches `/api/me/pools`, shows pool name as link (1 pool) or dropdown (multiple); only visible when signed in
+- [x] **No demo data for signed-in users** — `standings` and `analytics` pages pass `defaultDemo={!userId}` / `showDemoToggle={!userId}`; demo is marketing-only
+- [x] `getPoolsForUser(userId)` DB helper — joins `pool_members → pools`, returns all pools user belongs to
+- [x] `GET /api/me/pools` route — returns user's pools, 401 if unauthenticated
 
 ### Phase 21 — www Redirect 🟢 LOW
 - [ ] Redirect `www.mastersmadness.com` → `mastersmadness.com` (canonical)
@@ -178,4 +183,4 @@
 1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
 2. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
 3. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
-4. **Phase 16** — Supabase RLS policies (lock down DB for production)
+4. **Run migration 003** — paste `003_rls_policies.sql` into Supabase SQL Editor to apply

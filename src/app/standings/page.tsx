@@ -124,8 +124,8 @@ export default async function StandingsPage() {
           <StandingsShell
             poolState={poolState}
             isCommissioner={isCommissioner}
-            showDemoToggle
-            defaultDemo
+            showDemoToggle={!userId}
+            defaultDemo={!userId}
           />
         </Card>
       </div>

@@ -46,6 +46,20 @@ export async function getPoolsByUser(userId: string): Promise<Pool[]> {
   return data as Pool[];
 }
 
+/** Returns all pools a user belongs to (as commissioner or player). */
+export async function getPoolsForUser(userId: string): Promise<Pool[]> {
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from("pool_members")
+    .select("pools(*)")
+    .eq("user_id", userId)
+    .order("joined_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as { pools: Pool }[])
+    .map((row) => row.pools)
+    .filter(Boolean) as Pool[];
+}
+
 export type CreatePoolInput = {
   slug: string;
   name: string;
