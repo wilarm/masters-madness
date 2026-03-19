@@ -21,6 +21,8 @@ import {
   AlertCircle,
   Trophy,
   Save,
+  Info,
+  ChevronDown,
 } from "lucide-react";
 
 export default function PicksPage() {
@@ -35,6 +37,7 @@ function PicksContent() {
   const searchParams = useSearchParams();
   const poolSlug = searchParams.get("pool");
 
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [currentTier, setCurrentTier] = useState(1);
   const [picks, setPicks] = useState<Record<number, string>>({});
   const [search, setSearch] = useState("");
@@ -175,13 +178,44 @@ function PicksContent() {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="font-heading text-3xl font-bold text-foreground">
           My Picks
         </h1>
         <p className="text-muted mt-1">
           Select 1 golfer from each of the {numTiers} tiers
         </p>
+      </div>
+
+      {/* How It Works collapsible */}
+      <div className="mb-6 rounded-xl border border-masters-green/15 bg-masters-green-light overflow-hidden">
+        <button
+          onClick={() => setHowItWorksOpen((v) => !v)}
+          className="w-full flex items-center gap-2.5 px-4 py-3 text-left cursor-pointer"
+        >
+          <Info className="h-4 w-4 text-masters-green shrink-0" />
+          <span className="text-sm font-semibold text-masters-green flex-1">
+            How picks work
+          </span>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-masters-green/60 transition-transform duration-200",
+              howItWorksOpen && "rotate-180"
+            )}
+          />
+        </button>
+        {howItWorksOpen && (
+          <div className="px-4 pb-4 pt-0 space-y-3 border-t border-masters-green/10">
+            <div className="grid sm:grid-cols-2 gap-3 pt-3">
+              {HOW_PICKS_WORK.map(({ title, body }) => (
+                <div key={title} className="rounded-lg bg-white/60 border border-masters-green/10 p-3">
+                  <p className="text-xs font-bold text-masters-green uppercase tracking-wider mb-1">{title}</p>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
@@ -512,6 +546,25 @@ function PicksContent() {
     </div>
   );
 }
+
+const HOW_PICKS_WORK = [
+  {
+    title: "What are tiers?",
+    body: "Your commissioner divides the field into ranked groups — Tier 1 has the favorites, the final tier has the longshots. The number of tiers is set per pool.",
+  },
+  {
+    title: "How do I pick?",
+    body: "Choose exactly 1 golfer from each tier. Tap any player card to expand their scouting report, odds, and Augusta history before you decide.",
+  },
+  {
+    title: "How does scoring work?",
+    body: "Your golfers' strokes-to-par accumulate each round. Only your best golfers count toward your total — the rest are benched. Lower score wins.",
+  },
+  {
+    title: "Can I change my picks?",
+    body: "Yes — you can update your picks right up until the picks deadline (April 9th, 5:00 AM MT). After that, your lineup is locked in.",
+  },
+];
 
 function StatBlock({ label, value, small }: { label: string; value: string; small?: boolean }) {
   return (

@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, Users, Calendar } from "lucide-react";
+import { Trophy, TrendingUp, Users, Calendar, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Countdown } from "@/components/ui/countdown";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -104,6 +104,21 @@ export default async function StandingsPage() {
             value="Apr 9–12"
             sublabel="Augusta National"
           />
+        </div>
+
+        {/* Scoring Info Banner */}
+        <div className="mb-6 rounded-xl border border-masters-green/15 bg-masters-green-light px-4 py-3.5 flex items-start gap-3">
+          <Info className="h-4 w-4 text-masters-green shrink-0 mt-0.5" />
+          <div className="text-sm text-masters-green/80 leading-relaxed">
+            <span className="font-bold text-masters-green">How scoring works: </span>
+            Each player picks one golfer from each of 9 tiers. Your{" "}
+            <span className="font-semibold">best 4 of 9</span> golfers' cumulative
+            strokes-to-par count toward your score — lower is better. Standings
+            update live each round during tournament week.{" "}
+            <span className="text-masters-green/60 text-xs">
+              (Tiers, score count, and rules are customizable per pool.)
+            </span>
+          </div>
         </div>
 
         {/* Standings Table */}

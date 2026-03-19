@@ -338,6 +338,78 @@ const HOW_STEPS = [
   },
 ];
 
+// ─── Scoring Explainer ─────────────────────────────────────────────────────────
+function ScoringExplainerSection() {
+  return (
+    <section className="py-20 sm:py-28 bg-white border-t border-border">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+          {/* Left: Header */}
+          <div>
+            <p className="text-masters-green text-sm font-bold uppercase tracking-widest mb-3">
+              How It Works
+            </p>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground mb-5">
+              Tiers, picks, and scoring — explained.
+            </h2>
+            <p className="text-muted leading-relaxed mb-6">
+              Masters Madness uses a tiered draft system — the commissioner
+              assigns golfers into ranked groups, and every player picks one
+              golfer from each tier. Everything from the number of tiers to
+              how many scores count is fully customizable.
+            </p>
+            <div className="rounded-2xl bg-masters-green-light border border-masters-green/15 p-5 space-y-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-masters-green/60">
+                Default Setup (fully adjustable)
+              </p>
+              {[
+                { label: "Tiers", value: "9 tiers" },
+                { label: "Golfers per tier", value: "~8–12 players" },
+                { label: "Scores that count", value: "Best 4 of 9" },
+                { label: "Scoring style", value: "Cumulative strokes-to-par" },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between text-sm">
+                  <span className="text-muted font-medium">{label}</span>
+                  <span className="font-bold text-foreground">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Q&A */}
+          <div className="space-y-5">
+            {SCORING_FAQ.map(({ q, a }) => (
+              <div key={q} className="rounded-2xl border border-border bg-[var(--color-bg)] p-5">
+                <h3 className="font-heading text-base font-bold text-foreground mb-2">{q}</h3>
+                <p className="text-sm text-muted leading-relaxed">{a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const SCORING_FAQ = [
+  {
+    q: "What are tiers, and do they auto-populate?",
+    a: "Tiers are ranked groups of golfers — Tier 1 has the favorites, Tier 9 the longshots. The commissioner assigns golfers to tiers before the tournament. Players don't see each other's picks until the deadline.",
+  },
+  {
+    q: "How do I make my picks?",
+    a: "Simple: pick exactly one golfer from each tier. You can research odds, form, and Augusta history right inside the app before you decide.",
+  },
+  {
+    q: "How does scoring work — daily or end of tournament?",
+    a: "Scores update live, round by round. Your pool standings shift in real time as golfers post their scores each day. Your best 4 of 9 golfers count toward your total (configurable by your commissioner).",
+  },
+  {
+    q: "Can the commissioner change how many scores count?",
+    a: "Yes — everything is customizable. The number of tiers, players per tier, how many scores count, cut rules, bonus groups, entry fee, and payouts are all set by your commissioner in the pool settings.",
+  },
+];
+
 // ─── Features Grid ─────────────────────────────────────────────────────────────
 function FeaturesSection() {
   return (
@@ -895,6 +967,7 @@ export default function HomePage() {
       <HeroSection />
       <SocialProofStrip />
       <HowItWorksSection />
+      <ScoringExplainerSection />
       <FeaturesSection />
       <PoolPreviewSection />
       <ResearchPreviewSection />

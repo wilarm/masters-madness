@@ -185,6 +185,50 @@ export function Navbar() {
         {/* Mobile Nav Drawer */}
         {mobileOpen && (
           <div className="md:hidden border-t border-border py-3 space-y-1 pb-[env(safe-area-inset-bottom,12px)]">
+
+            {/* Mobile: Active Pool Switcher */}
+            {hasPool && userPools.length > 0 && (
+              <div className="mb-3 px-1">
+                <div className="rounded-xl bg-masters-green-light border border-masters-green/15 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-masters-green/50 mb-2">
+                    Active Pool
+                  </p>
+                  {userPools.length === 1 ? (
+                    <Link
+                      href={`/standings?pool=${userPools[0].slug}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 text-sm font-bold text-masters-green"
+                    >
+                      <Trophy className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{userPools[0].name}</span>
+                    </Link>
+                  ) : (
+                    <div className="space-y-1">
+                      {userPools.map((pool) => (
+                        <Link
+                          key={pool.id}
+                          href={`/standings?pool=${pool.slug}`}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-sm font-semibold transition-colors",
+                            pool.slug === activeSlug
+                              ? "bg-masters-green text-white"
+                              : "text-masters-green hover:bg-masters-green/10"
+                          )}
+                        >
+                          <Trophy className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{pool.name}</span>
+                          {pool.slug === activeSlug && (
+                            <span className="ml-auto text-[10px] font-bold text-white/70">Active</span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {mobileLinks.map((link, i) => {
               const Icon = link.icon;
               return (
