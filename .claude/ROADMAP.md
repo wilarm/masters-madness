@@ -108,6 +108,64 @@
 
 ## 🔲 Remaining (priority order, 22 days to lock)
 
+### Phase 23 — Pool Discovery + Nav Overflow Menu 🟡 MEDIUM
+**Goal:** Give signed-in users without a pool a clear path to find one; slim the primary nav with a "more" overflow menu for pool members.
+
+#### User States & Nav Behavior
+| State | Primary Nav | More Menu (…) |
+|---|---|---|
+| Signed out | Standings, Leaderboard, Research, Rules | Not shown |
+| Signed in, **no pools** | **Join a Pool** (replaces Standings), Leaderboard, Research | Not shown |
+| Signed in, **in pool(s)** | Standings, Leaderboard, My Picks | Pool Analytics, Research, Rules, —, Join Another Pool, Commissioner Settings* |
+
+*Commissioner Settings only shown if `userPools[0].role === 'commissioner'`
+
+Mobile: overflow items fold into the existing drawer with a divider — no separate more menu on mobile.
+
+#### `/join` — Pool Discovery Page
+- Server component; reads `?q=search` + `?page=N` from searchParams (SSR, shareable URLs)
+- Search input (GET form — no JS required)
+- Paginated pool list — 10 per page, offset-based
+- **Each pool card:** name, state badge (Pre-Lock/Live/etc.), member count, entry fee, CTA
+- **CTA states:** "View Pool" (already member) / "Join Pool" (signed in, not member) / "Sign In to Join" (signed out — redirect to sign-in with `?redirect_url=/join`)
+- No join confirmation modal — join immediately, redirect to `/pool/[slug]`
+- Show all pools for now (no `is_public` flag yet); private/invite-only is a future phase
+
+#### Data Layer
+- [ ] **23A-1** `getPublicPools(page, search)` in `db/pools.ts` — embedded member count (Supabase `.select("*, pool_members(count)")`), offset pagination, returns `{ pools, memberCounts, total }`
+- [ ] **23A-2** Update `getPoolsForUser` to also return the user's `role` per pool (change select from `pools(*)` to `role, pools(*)`)
+- [ ] **23A-3** `GET /api/pools` public route — accepts `?page` + `?q`, returns paginated pool list + total
+- [ ] **23A-4** Update `GET /api/me/pools` to include `role` in each pool stub
+- [ ] **23A-5** Extend `PoolStub = { id, slug, name, role }` and update navbar + pool-switcher usages
+
+#### Join Page
+- [ ] **23B-1** `/src/app/join/page.tsx` — server component, fetch pools + user's existing pool IDs server-side
+- [ ] **23B-2** `PoolDiscoveryCard` component — pool name, state badge, member count, entry fee, CTA button
+- [ ] **23B-3** Pagination controls component (Prev/Next + page indicator)
+- [ ] **23B-4** Search form (plain HTML GET form — degrades gracefully without JS)
+- [ ] **23B-5** Handle signed-out "Sign In to Join" CTA (Clerk `SignInButton` with redirect)
+
+#### Nav Overflow
+- [ ] **23C-1** `MoreMenu` client component — `MoreHorizontal` (lucide) icon, click-outside-to-close dropdown, pool-aware href construction
+- [ ] **23C-2** Navbar restructure: pool members get primary (Standings, Leaderboard, My Picks) + MoreMenu
+- [ ] **23C-3** No-pool signed-in state: "Join a Pool" replaces Standings in primary nav (no more menu)
+- [ ] **23C-4** Commissioner Settings link in MoreMenu, conditional on `userPools[0]?.role === 'commissioner'`
+- [ ] **23C-5** Mobile drawer: add divider + overflow items (Pool Analytics, Research, Rules, Join a Pool, Commissioner Settings) below existing links
+
+#### Landing Page
+- [ ] **23D-1** Update "Join a Pool" CTA on home page (`/`) to route to `/join`
+
+#### Key Decisions
+| Question | Decision |
+|---|---|
+| Public/private pools | Show all pools; invite-only is a future phase |
+| Join requires confirmation? | No — join immediately, redirect to `/pool/[slug]` |
+| Already-member UX | "View Pool" button, no duplicate join |
+| Signed-out join flow | `SignInButton` with `?redirect_url=/join` callback |
+| Pagination type | Offset via URL params (SSR-compatible, shareable) |
+
+
+
 ### Phase 9 — Email Notifications 🔴 HIGH
 **Goal:** Transactional emails via Resend + React Email
 - [ ] Set up Resend account + API key (`RESEND_API_KEY` env var)
@@ -181,6 +239,7 @@
 
 ## Upcoming Session Priorities (next build session)
 
-1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
-2. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
-3. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
+1. **Phase 23** — Pool discovery (`/join` page) + nav overflow menu (MoreMenu)
+2. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
+3. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
+4. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
