@@ -1,6 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
 import { getRulesContent } from "@/lib/db/settings";
+import { getPoolBySlug, getPoolMembers } from "@/lib/db/pools";
+import { CopyShareButton } from "@/components/ui/share-button";
 import {
   Trophy,
   DollarSign,
@@ -13,14 +15,55 @@ import {
 
 export const revalidate = 60; // revalidate every minute
 
-export default async function RulesPage() {
-  const rules = await getRulesContent();
+export default async function RulesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pool?: string }>;
+}) {
+  const { pool: poolSlug } = await searchParams;
+  const [rules, pool] = await Promise.all([
+    getRulesContent(),
+    poolSlug ? getPoolBySlug(poolSlug) : null,
+  ]);
+
+  // Pull members count for auto prize pool calc
+  const members = pool ? await getPoolMembers(pool.id) : [];
+
+  // Pool config overrides
+  const config = (pool?.config ?? {}) as Record<string, unknown>;
+  const poolEntryFee = config.entryFee != null ? Number(config.entryFee) : null;
+  const poolPrizePool = config.prizePool as string | undefined;
+  const poolVenmoLink = config.venmoLink as string | undefined;
+  const poolCommunityMessage = config.communityMessage as string | undefined;
+
+  // Compute displayed values — pool config wins over global settings
+  const entryFeeLabel = poolEntryFee != null && poolEntryFee > 0
+    ? `$${poolEntryFee} per entry`
+    : rules.entryFee;
+
+  const autoPrizePool =
+    poolEntryFee && poolEntryFee > 0 && members.length > 0
+      ? `$${(members.length * poolEntryFee).toLocaleString()}`
+      : null;
+  const prizePoolLabel = poolPrizePool || autoPrizePool || null;
+
+  const paymentLabel = poolVenmoLink
+    ? poolVenmoLink
+    : rules.paymentInfo;
+
+  const communityMessage = poolCommunityMessage || rules.communityMessage;
+
+  const shareUrl = pool
+    ? `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com"}/pool/${pool.slug}`
+    : `https://${rules.shareUrl}`;
+
+  const pageTitle = pool ? pool.name : "Masters Madness Pool 2026";
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center mb-12">
         <h1 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">
-          Masters Madness Pool 2026
+          {pageTitle}
         </h1>
         <p className="text-lg text-muted mt-3 max-w-2xl mx-auto">
           Welcome to the Masters Fantasy Golf Tournament.
@@ -39,7 +82,7 @@ export default async function RulesPage() {
               <h2 className="font-heading text-xl font-bold text-foreground mb-2">
                 Why Your Participation Matters
               </h2>
-              <p className="text-muted leading-relaxed">{rules.communityMessage}</p>
+              <p className="text-muted leading-relaxed">{communityMessage}</p>
             </div>
           </div>
         </Card>
@@ -111,7 +154,7 @@ export default async function RulesPage() {
                     <DollarSign className="h-4 w-4 text-masters-green" />
                     <span className="font-semibold text-foreground">Entry Fee</span>
                   </div>
-                  <p className="text-muted text-sm">{rules.entryFee}</p>
+                  <p className="text-muted text-sm">{entryFeeLabel}</p>
                 </div>
 
                 <div className="rounded-lg bg-bg-muted p-4">
@@ -127,7 +170,18 @@ export default async function RulesPage() {
                     <DollarSign className="h-4 w-4 text-masters-green" />
                     <span className="font-semibold text-foreground">Payment</span>
                   </div>
-                  <p className="text-muted text-sm">{rules.paymentInfo}</p>
+                  {poolVenmoLink ? (
+                    <a
+                      href={poolVenmoLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-masters-green font-medium text-sm hover:underline break-all"
+                    >
+                      {poolVenmoLink}
+                    </a>
+                  ) : (
+                    <p className="text-muted text-sm">{paymentLabel}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -140,10 +194,18 @@ export default async function RulesPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
               <Trophy className="h-5 w-5" />
             </div>
-            <div>
+            <div className="w-full">
               <h2 className="font-heading text-xl font-bold text-foreground mb-4">
                 Payouts & Prizes
               </h2>
+
+              {prizePoolLabel ? (
+                <div className="mb-4 rounded-lg bg-masters-gold/10 border border-masters-gold/30 px-4 py-3">
+                  <p className="text-sm font-semibold text-foreground">
+                    Total Prize Pool: <span className="text-masters-gold-dark">{prizePoolLabel}</span>
+                  </p>
+                </div>
+              ) : null}
 
               <div className="space-y-3">
                 {rules.payouts.map((row) => (
@@ -167,21 +229,19 @@ export default async function RulesPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info flex-shrink-0 mt-1">
               <Share2 className="h-5 w-5" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h2 className="font-heading text-xl font-bold text-foreground mb-2">
                 Spread the Word
               </h2>
-              <p className="text-muted leading-relaxed">
-                Share this pool with friends and family! Just send them:{" "}
-                <a
-                  href={`https://${rules.shareUrl}`}
-                  className="text-masters-green font-semibold hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {rules.shareUrl}
-                </a>
+              <p className="text-muted leading-relaxed mb-3">
+                Share this pool with friends and family!
               </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <code className="text-sm text-masters-green font-mono bg-masters-green-light px-2 py-1 rounded break-all">
+                  {shareUrl}
+                </code>
+                <CopyShareButton url={shareUrl} />
+              </div>
             </div>
           </div>
         </Card>

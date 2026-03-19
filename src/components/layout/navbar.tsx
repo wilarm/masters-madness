@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { StartPoolButton } from "@/components/ui/start-pool-button";
-import { PoolSwitcher } from "@/components/layout/pool-switcher";
+import { PoolSwitcher, type PoolStub } from "@/components/layout/pool-switcher";
 import {
   Trophy,
   BarChart3,
@@ -16,24 +16,34 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useState } from "react";
-
-const navLinks = [
-  { href: "/standings", label: "Standings", icon: Trophy },
-  { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
-  { href: "/picks", label: "My Picks", icon: ClipboardList, auth: true },
-  { href: "/analytics", label: "Pool Analytics", icon: Search },
-  { href: "/research", label: "Research", icon: BookOpen },
-  { href: "/rules", label: "Rules", icon: Users },
-];
+import { useState, useEffect } from "react";
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userPools, setUserPools] = useState<PoolStub[]>([]);
   const { isSignedIn, isLoaded } = useUser();
   // Show signed-out UI when Clerk hasn't loaded yet (optimistic) or confirmed signed-out
   const showSignIn = !isLoaded || !isSignedIn;
   const showUserButton = isLoaded && isSignedIn;
+
+  useEffect(() => {
+    if (!isSignedIn) { setUserPools([]); return; }
+    fetch("/api/me/pools")
+      .then((r) => r.json())
+      .then((d) => setUserPools(d.pools ?? []))
+      .catch(() => {});
+  }, [isSignedIn]);
+
+  const activeSlug = userPools[0]?.slug;
+  const navLinks = [
+    { href: "/standings", label: "Standings", icon: Trophy },
+    { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
+    { href: activeSlug ? `/picks?pool=${activeSlug}` : "/picks", label: "My Picks", icon: ClipboardList, auth: true },
+    { href: activeSlug ? `/analytics?pool=${activeSlug}` : "/analytics", label: "Pool Analytics", icon: Search },
+    { href: "/research", label: "Research", icon: BookOpen },
+    { href: activeSlug ? `/rules?pool=${activeSlug}` : "/rules", label: "Rules", icon: Users },
+  ];
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
@@ -52,7 +62,7 @@ export function Navbar() {
                 </span>
               )}
             </Link>
-            {showUserButton && <PoolSwitcher />}
+            {showUserButton && <PoolSwitcher pools={userPools} />}
           </div>
 
           {/* Desktop Nav Links */}

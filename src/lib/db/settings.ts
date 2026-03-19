@@ -19,7 +19,7 @@ export type RulesContent = {
 
 export const DEFAULT_RULES: RulesContent = {
   communityMessage:
-    "Beyond the competition, this pool is about community. A portion of the proceeds will go to support someone in our community who could use a little help. Details will be shared before the tournament.",
+    "This pool is about friendly competition and bringing people together around the Masters. Good luck to everyone — may your golfers make the cut!",
   deadline: "~5am MT, Thursday, April 9th, 2026",
   entryFee: "$100 per team (max 2 entries per person)",
   maxEntries: "2 teams per participant",

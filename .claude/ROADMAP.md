@@ -144,6 +144,7 @@
 - [x] `scores` / `golfers` — public read
 - [x] `settings` — deny-all public; service role only
 - [x] Migration `003_rls_policies.sql` — idempotent `DO $$ ... $$` blocks, architecture note explaining Clerk+service-role pattern
+- [x] **Migration applied to production** — run in Supabase SQL Editor 2026-03-18; "Success. No rows returned" confirmed
 - [x] **Navbar pool switcher** — `PoolSwitcher` component fetches `/api/me/pools`, shows pool name as link (1 pool) or dropdown (multiple); only visible when signed in
 - [x] **No demo data for signed-in users** — `standings` and `analytics` pages pass `defaultDemo={!userId}` / `showDemoToggle={!userId}`; demo is marketing-only
 - [x] `getPoolsForUser(userId)` DB helper — joins `pool_members → pools`, returns all pools user belongs to
@@ -183,4 +184,3 @@
 1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
 2. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
 3. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
-4. **Run migration 003** — paste `003_rls_policies.sql` into Supabase SQL Editor to apply

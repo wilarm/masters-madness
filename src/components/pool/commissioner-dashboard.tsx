@@ -55,6 +55,8 @@ export function CommissionerDashboard({
   const [venmoLink, setVenmoLink] = useState(String(config.venmoLink ?? ""));
   const [heroSubtitle, setHeroSubtitle] = useState(String(config.heroSubtitle ?? ""));
   const HERO_SUBTITLE_MAX = 200;
+  const [communityMessage, setCommunityMessage] = useState(String(config.communityMessage ?? ""));
+  const COMMUNITY_MESSAGE_MAX = 500;
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -130,6 +132,7 @@ export function CommissionerDashboard({
         prizePool: prizePool || undefined,
         venmoLink: venmoLink || undefined,
         heroSubtitle: heroSubtitle.trim() || undefined,
+        communityMessage: communityMessage.trim() || undefined,
       }),
     });
     setSettingsLoading(false);
@@ -560,6 +563,26 @@ export function CommissionerDashboard({
                   />
                   <p className="text-xs text-muted">
                     Shown below the pool name in the hero. Leave blank for the default.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="community-message">Community Message</Label>
+                    <span className={`text-xs ${communityMessage.length > COMMUNITY_MESSAGE_MAX ? "text-destructive" : "text-muted"}`}>
+                      {communityMessage.length}/{COMMUNITY_MESSAGE_MAX}
+                    </span>
+                  </div>
+                  <textarea
+                    id="community-message"
+                    value={communityMessage}
+                    onChange={(e) => setCommunityMessage(e.target.value.slice(0, COMMUNITY_MESSAGE_MAX))}
+                    placeholder="This pool is about friendly competition and bringing people together around the Masters. Good luck to everyone!"
+                    rows={3}
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-masters-green/30 focus:border-masters-green resize-none"
+                  />
+                  <p className="text-xs text-muted">
+                    Shown in the &ldquo;Why Your Participation Matters&rdquo; section of the Rules page. Leave blank for the default.
                   </p>
                 </div>
 

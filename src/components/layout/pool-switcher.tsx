@@ -5,25 +5,20 @@ import Link from "next/link";
 import { ChevronDown, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Pool = {
+export type PoolStub = {
   id: string;
   slug: string;
   name: string;
 };
 
-export function PoolSwitcher() {
-  const [pools, setPools] = useState<Pool[]>([]);
+interface PoolSwitcherProps {
+  pools: PoolStub[];
+}
+
+export function PoolSwitcher({ pools }: PoolSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetch("/api/me/pools")
-      .then((r) => r.json())
-      .then((d) => setPools(d.pools ?? []))
-      .catch(() => {});
-  }, []);
-
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {

@@ -20,7 +20,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const { name, entryFee, prizePool, venmoLink, heroSubtitle } = body;
+  const { name, entryFee, prizePool, venmoLink, heroSubtitle, communityMessage } = body;
 
   // Merge new settings into existing config
   // Falsy string values are excluded so they fall back to auto-calculated defaults
@@ -34,6 +34,9 @@ export async function PATCH(
     ...(heroSubtitle !== undefined && heroSubtitle
       ? { heroSubtitle: String(heroSubtitle) }
       : heroSubtitle === "" && { heroSubtitle: undefined }),
+    ...(communityMessage !== undefined && communityMessage
+      ? { communityMessage: String(communityMessage) }
+      : communityMessage === "" && { communityMessage: undefined }),
   };
 
   const updates: { name?: string; config: Record<string, unknown> } = {
