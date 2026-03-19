@@ -6,6 +6,7 @@ import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { StartPoolButton } from "@/components/ui/start-pool-button";
 import { PoolSwitcher, type PoolStub } from "@/components/layout/pool-switcher";
+import { MoreMenu, type MoreMenuItem } from "@/components/layout/more-menu";
 import {
   Trophy,
   BarChart3,
@@ -13,17 +14,26 @@ import {
   BookOpen,
   Search,
   Users,
+  UserPlus,
+  Crown,
   Menu,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import type { LucideIcon } from "lucide-react";
+
+type NavLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userPools, setUserPools] = useState<PoolStub[]>([]);
   const { isSignedIn, isLoaded } = useUser();
-  // Show signed-out UI when Clerk hasn't loaded yet (optimistic) or confirmed signed-out
+
   const showSignIn = !isLoaded || !isSignedIn;
   const showUserButton = isLoaded && isSignedIn;
 
@@ -36,26 +46,74 @@ export function Navbar() {
   }, [isSignedIn]);
 
   const activeSlug = userPools[0]?.slug;
-  const navLinks = [
-    { href: "/standings", label: "Standings", icon: Trophy },
-    { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
-    { href: activeSlug ? `/picks?pool=${activeSlug}` : "/picks", label: "My Picks", icon: ClipboardList, auth: true },
-    { href: activeSlug ? `/analytics?pool=${activeSlug}` : "/analytics", label: "Pool Analytics", icon: Search },
-    { href: "/research", label: "Research", icon: BookOpen },
-    { href: activeSlug ? `/rules?pool=${activeSlug}` : "/rules", label: "Rules", icon: Users },
+  const hasPool = isLoaded && isSignedIn && userPools.length > 0;
+  const isCommish = userPools[0]?.role === "commissioner";
+
+  // ── Primary nav links ──────────────────────────────────────────────────────
+  let primaryLinks: NavLink[];
+
+  if (isLoaded && isSignedIn && !hasPool) {
+    // Signed in, no pool yet → show Join a Pool prominently
+    primaryLinks = [
+      { href: "/join", label: "Join a Pool", icon: UserPlus },
+      { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
+      { href: "/research", label: "Research", icon: BookOpen },
+    ];
+  } else if (hasPool) {
+    // Pool member → core 3; rest goes in More menu
+    primaryLinks = [
+      { href: activeSlug ? `/standings?pool=${activeSlug}` : "/standings", label: "Standings", icon: Trophy },
+      { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
+      { href: activeSlug ? `/picks?pool=${activeSlug}` : "/picks", label: "My Picks", icon: ClipboardList },
+    ];
+  } else {
+    // Signed out (or loading)
+    primaryLinks = [
+      { href: "/standings", label: "Standings", icon: Trophy },
+      { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
+      { href: "/research", label: "Research", icon: BookOpen },
+      { href: "/rules", label: "Rules", icon: Users },
+    ];
+  }
+
+  // ── More menu (pool members only) ─────────────────────────────────────────
+  const moreItems: MoreMenuItem[] = hasPool
+    ? [
+        { href: activeSlug ? `/analytics?pool=${activeSlug}` : "/analytics", label: "Pool Analytics", icon: Search },
+        { href: "/research", label: "Research", icon: BookOpen },
+        { href: activeSlug ? `/rules?pool=${activeSlug}` : "/rules", label: "Rules", icon: Users },
+        { href: "/join", label: "Join Another Pool", icon: UserPlus, dividerBefore: true },
+        ...(isCommish
+          ? [{ href: `/pool/${activeSlug}/commissioner`, label: "Commissioner Settings", icon: Crown }]
+          : []),
+      ]
+    : [];
+
+  // ── Mobile: flat list with divider before overflow section ─────────────────
+  const mobileLinks: (NavLink & { dividerBefore?: boolean })[] = [
+    ...primaryLinks,
+    ...moreItems.map((item, i) => ({
+      ...item,
+      dividerBefore: i === 0 ? true : item.dividerBefore,
+    })),
   ];
+
+  function isActive(href: string) {
+    const base = href.split("?")[0];
+    return pathname === base || (base !== "/" && pathname.startsWith(base));
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
+
           {/* Logo + Pool Switcher */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
                 M
               </div>
-              {/* Show site name when signed out; PoolSwitcher replaces it when signed in */}
               {!showUserButton && (
                 <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
                   Masters Madness
@@ -65,21 +123,17 @@ export function Navbar() {
             {showUserButton && <PoolSwitcher pools={userPools} />}
           </div>
 
-          {/* Desktop Nav Links */}
+          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
+            {primaryLinks.map((link) => {
               const Icon = link.icon;
-              const isActive =
-                pathname === link.href ||
-                (link.href !== "/" && pathname.startsWith(link.href));
-
-              const linkEl = (
+              return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                    isActive
+                    isActive(link.href)
                       ? "bg-masters-green-light text-masters-green"
                       : "text-foreground/70 hover:text-foreground hover:bg-bg-muted"
                   )}
@@ -88,19 +142,11 @@ export function Navbar() {
                   {link.label}
                 </Link>
               );
-
-              // Auth-required links only show when signed in
-              if (link.auth) {
-                return showUserButton ? (
-                  <span key={link.href}>{linkEl}</span>
-                ) : null;
-              }
-
-              return <span key={link.href}>{linkEl}</span>;
             })}
+            <MoreMenu items={moreItems} />
           </div>
 
-          {/* Auth Buttons + Start Pool */}
+          {/* Auth + Start Pool */}
           <div className="flex items-center gap-3">
             <StartPoolButton className="hidden sm:block" />
             {showSignIn && (
@@ -112,61 +158,45 @@ export function Navbar() {
             )}
             {showUserButton && (
               <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: "h-9 w-9",
-                  },
-                }}
+                appearance={{ elements: { avatarBox: "h-9 w-9" } }}
               />
             )}
-
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="md:hidden flex items-center justify-center h-9 w-9 rounded-lg text-muted hover:text-foreground hover:bg-bg-muted transition-colors cursor-pointer"
               aria-label="Toggle navigation menu"
             >
-              {mobileOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Nav */}
+        {/* Mobile Nav Drawer */}
         {mobileOpen && (
           <div className="md:hidden border-t border-border py-3 space-y-1 pb-[env(safe-area-inset-bottom,12px)]">
-            {navLinks.map((link) => {
+            {mobileLinks.map((link, i) => {
               const Icon = link.icon;
-              const isActive =
-                pathname === link.href ||
-                (link.href !== "/" && pathname.startsWith(link.href));
-
-              const linkEl = (
-                <Link
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-3.5 rounded-lg text-base font-medium transition-all duration-200 min-h-[48px] active:scale-[0.98]",
-                    isActive
-                      ? "bg-masters-green-light text-masters-green"
-                      : "text-foreground/70 hover:text-foreground hover:bg-bg-muted active:bg-bg-muted"
+              return (
+                <div key={`${link.href}-${i}`}>
+                  {link.dividerBefore && (
+                    <div className="my-2 border-t border-border-light" />
                   )}
-                >
-                  <Icon className="h-5 w-5" />
-                  {link.label}
-                </Link>
+                  <Link
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3.5 rounded-lg text-base font-medium transition-all duration-200 min-h-[48px] active:scale-[0.98]",
+                      isActive(link.href)
+                        ? "bg-masters-green-light text-masters-green"
+                        : "text-foreground/70 hover:text-foreground hover:bg-bg-muted"
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {link.label}
+                  </Link>
+                </div>
               );
-
-              if (link.auth) {
-                return showUserButton ? (
-                  <span key={link.href}>{linkEl}</span>
-                ) : null;
-              }
-
-              return <span key={link.href}>{linkEl}</span>;
             })}
 
             <div className="pt-2 border-t border-border space-y-2">

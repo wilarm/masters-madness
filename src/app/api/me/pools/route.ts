@@ -8,5 +8,12 @@ export async function GET() {
     return NextResponse.json({ pools: [] }, { status: 401 });
   }
   const pools = await getPoolsForUser(userId);
-  return NextResponse.json({ pools });
+  // Return lightweight stubs (id, slug, name, role) — navbar doesn't need full pool objects
+  const stubs = pools.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    role: p.myRole,
+  }));
+  return NextResponse.json({ pools: stubs });
 }

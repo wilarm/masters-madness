@@ -2,6 +2,15 @@ import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { getAuthUserId } from "@/lib/auth";
+import { getPublicPools } from "@/lib/db/pools";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const q = searchParams.get("q") ?? "";
+  const { pools, total } = await getPublicPools(page, q);
+  return NextResponse.json({ pools, total, page });
+}
 
 function generateSlug(name: string): string {
   const base = name

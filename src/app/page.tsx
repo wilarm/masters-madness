@@ -76,7 +76,7 @@ function HeroSection() {
               <ChevronRight className="h-5 w-5" />
             </Link>
             <Link
-              href="/sign-up"
+              href="/join"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/25 px-7 py-4 text-base font-semibold text-white hover:bg-white/20 transition-all duration-200 cursor-pointer backdrop-blur-sm"
             >
               Join a Pool
@@ -828,7 +828,7 @@ function FoundingMembersSection() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/sign-up"
+                href="/pool/create"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-masters-gold px-8 py-4 text-base font-bold text-white shadow-[0_4px_20px_rgba(196,167,71,0.4)] hover:bg-masters-gold-dark transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
               >
                 Claim Your Spot — It&apos;s Free
@@ -873,7 +873,7 @@ function FinalCTASection() {
             Start a Pool
           </Link>
           <Link
-            href="/sign-up"
+            href="/join"
             className="inline-flex items-center gap-1.5 text-white/70 font-medium hover:text-white transition-colors text-sm cursor-pointer"
           >
             or join an existing pool

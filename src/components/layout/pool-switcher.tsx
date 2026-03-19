@@ -9,6 +9,7 @@ export type PoolStub = {
   id: string;
   slug: string;
   name: string;
+  role: string;
 };
 
 interface PoolSwitcherProps {
