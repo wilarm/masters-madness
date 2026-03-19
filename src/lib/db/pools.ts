@@ -55,7 +55,7 @@ export async function getPoolsForUser(userId: string): Promise<Pool[]> {
     .eq("user_id", userId)
     .order("joined_at", { ascending: false });
   if (error || !data) return [];
-  return (data as { pools: Pool }[])
+  return (data as unknown as { pools: Pool }[])
     .map((row) => row.pools)
     .filter(Boolean) as Pool[];
 }
