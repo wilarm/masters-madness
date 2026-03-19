@@ -45,9 +45,19 @@ export function Navbar() {
       .catch(() => {});
   }, [isSignedIn]);
 
-  const activeSlug = userPools[0]?.slug;
+  // Derive active pool from current URL (?pool=slug or /pool/[slug]/*)
+  const [urlPoolSlug, setUrlPoolSlug] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get("pool");
+    const fromPath = pathname.match(/^\/pool\/([^/]+)/)?.[1] ?? null;
+    setUrlPoolSlug(fromQuery ?? fromPath);
+  }, [pathname]);
+
+  const activePool = userPools.find((p) => p.slug === urlPoolSlug) ?? userPools[0];
+  const activeSlug = activePool?.slug;
   const hasPool = isLoaded && isSignedIn && userPools.length > 0;
-  const isCommish = userPools[0]?.role === "commissioner";
+  const isCommish = activePool?.role === "commissioner";
 
   // ── Primary nav links ──────────────────────────────────────────────────────
   let primaryLinks: NavLink[];
@@ -120,7 +130,7 @@ export function Navbar() {
                 </span>
               )}
             </Link>
-            {showUserButton && <PoolSwitcher pools={userPools} />}
+            {showUserButton && <PoolSwitcher pools={userPools} activeSlug={activeSlug} />}
           </div>
 
           {/* Desktop Nav */}

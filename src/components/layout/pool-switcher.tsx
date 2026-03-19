@@ -14,9 +14,10 @@ export type PoolStub = {
 
 interface PoolSwitcherProps {
   pools: PoolStub[];
+  activeSlug?: string;
 }
 
-export function PoolSwitcher({ pools }: PoolSwitcherProps) {
+export function PoolSwitcher({ pools, activeSlug }: PoolSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -46,6 +47,8 @@ export function PoolSwitcher({ pools }: PoolSwitcherProps) {
   }
 
   // Multiple pools — dropdown
+  const activePool = pools.find((p) => p.slug === activeSlug) ?? pools[0];
+
   return (
     <div ref={ref} className="relative hidden sm:block">
       <button
@@ -53,7 +56,7 @@ export function PoolSwitcher({ pools }: PoolSwitcherProps) {
         className="flex items-center gap-1.5 rounded-lg border border-masters-green/20 bg-masters-green-light px-3 py-1.5 text-xs font-semibold text-masters-green hover:bg-masters-green/10 transition-colors max-w-[180px] cursor-pointer"
       >
         <Trophy className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{pools[0].name}</span>
+        <span className="truncate">{activePool.name}</span>
         <ChevronDown
           className={cn(
             "h-3 w-3 shrink-0 transition-transform duration-200",

@@ -256,6 +256,9 @@ function SocialProofStrip() {
             </div>
           ))}
         </div>
+        <p className="text-center text-white/30 text-xs italic mt-8">
+          Jk, this app is still in beta. Those stats help with SEO though...
+        </p>
       </div>
     </section>
   );
