@@ -16,6 +16,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
+import { ShareButton } from "@/components/ui/share-button";
 import { StandingsShell } from "@/components/standings/standings-shell";
 import { getPoolBySlug, getPoolMembers } from "@/lib/db/pools";
 import { getPicksByUser } from "@/lib/db/picks";
@@ -49,8 +50,17 @@ export default async function PoolPage({
   const isMember = !!userRole;
   const hasSubmittedPicks = userPicks.length > 0;
   const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://mastersmadness.com"}/pool/${slug}`;
-  const prizePool = pool.config?.prizePool as string | undefined;
-  const entryFee = pool.config?.entryFee as string | undefined;
+  const prizePoolOverride = pool.config?.prizePool as string | undefined;
+  const entryFee = pool.config?.entryFee as string | number | undefined;
+  const heroSubtitle = pool.config?.heroSubtitle as string | undefined;
+
+  // Auto-calculate prize pool from members × entry fee; commissioner can override with custom text
+  const entryFeeNum = entryFee ? Number(entryFee) : 0;
+  const autoPrizePool =
+    entryFeeNum > 0
+      ? `$${(members.length * entryFeeNum).toLocaleString()}`
+      : null;
+  const prizePool = prizePoolOverride || autoPrizePool;
   const picksRedirect = encodeURIComponent(`/picks?pool=${slug}`);
 
   return (
@@ -101,9 +111,17 @@ export default async function PoolPage({
               {pool.name}
             </h1>
             <p className="text-lg text-white/80 max-w-xl mx-auto">
-              Masters Tournament Pool &middot; Augusta National Golf Club
+              {heroSubtitle || "Masters Tournament Pool · Augusta National Golf Club"}
             </p>
-            <div className="flex items-center justify-center gap-4 mt-6">
+            <div className="flex items-center justify-center mt-6 mb-2">
+              <ShareButton
+                url={shareUrl}
+                title={pool.name}
+                text={`Join the ${pool.name} Masters pool!`}
+                label="Share Pool"
+              />
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-4">
               {prizePool && (
                 <div className="flex items-center gap-2 text-white/85 text-sm">
                   <Trophy className="h-4 w-4 text-masters-gold" />
@@ -246,7 +264,9 @@ export default async function PoolPage({
             <p className="font-heading text-2xl font-bold text-foreground mt-1">
               {prizePool ?? "—"}
             </p>
-            <p className="text-xs text-muted font-medium mt-1">Winner takes all</p>
+            <p className="text-xs text-muted font-medium mt-1">
+              {prizePoolOverride ? "Custom" : autoPrizePool ? `${members.length} × $${entryFeeNum}` : "Winner takes all"}
+            </p>
           </Card>
           <Card className="text-center">
             <div className="inline-flex items-center justify-center h-10 w-10 rounded-lg mb-3 bg-masters-green-light text-masters-green">

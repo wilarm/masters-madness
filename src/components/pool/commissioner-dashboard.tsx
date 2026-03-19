@@ -53,6 +53,8 @@ export function CommissionerDashboard({
   const [entryFee, setEntryFee] = useState(String(config.entryFee ?? ""));
   const [prizePool, setPrizePool] = useState(String(config.prizePool ?? ""));
   const [venmoLink, setVenmoLink] = useState(String(config.venmoLink ?? ""));
+  const [heroSubtitle, setHeroSubtitle] = useState(String(config.heroSubtitle ?? ""));
+  const HERO_SUBTITLE_MAX = 200;
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -127,6 +129,7 @@ export function CommissionerDashboard({
         entryFee: entryFee ? Number(entryFee) : undefined,
         prizePool: prizePool || undefined,
         venmoLink: venmoLink || undefined,
+        heroSubtitle: heroSubtitle.trim() || undefined,
       }),
     });
     setSettingsLoading(false);
@@ -508,22 +511,55 @@ export function CommissionerDashboard({
                     onChange={(e) => setEntryFee(e.target.value)}
                     placeholder="100"
                   />
-                  <p className="text-xs text-muted">
-                    Used to calculate prize pool and track payment status.
-                  </p>
+                  {entryFee && Number(entryFee) > 0 && (
+                    <p className="text-xs text-masters-green font-medium">
+                      Auto prize pool: ${(initialMembers.length * Number(entryFee)).toLocaleString()} ({initialMembers.length} members × ${entryFee})
+                    </p>
+                  )}
+                  {(!entryFee || Number(entryFee) === 0) && (
+                    <p className="text-xs text-muted">
+                      Used to auto-calculate the prize pool and track payment status.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="prize-pool">Prize Pool Display</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="prize-pool">Prize Pool Override</Label>
+                    <span className="text-xs text-muted">Optional</span>
+                  </div>
                   <Input
                     id="prize-pool"
                     value={prizePool}
                     onChange={(e) => setPrizePool(e.target.value)}
-                    placeholder="$1,000 + bragging rights"
+                    placeholder={
+                      entryFee && Number(entryFee) > 0
+                        ? `Auto: $${(initialMembers.length * Number(entryFee)).toLocaleString()}`
+                        : "e.g. $1,500 to winner, rest to charity"
+                    }
                   />
                   <p className="text-xs text-muted">
-                    Displayed on the pool page. Can be anything — a dollar amount, a
-                    description, etc.
+                    Leave blank to auto-calculate from members × entry fee. Set custom text like &ldquo;$1,500 to winner, rest to charity&rdquo;.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="hero-subtitle">Pool Page Subtitle</Label>
+                    <span className={`text-xs ${heroSubtitle.length > HERO_SUBTITLE_MAX ? "text-destructive" : "text-muted"}`}>
+                      {heroSubtitle.length}/{HERO_SUBTITLE_MAX}
+                    </span>
+                  </div>
+                  <textarea
+                    id="hero-subtitle"
+                    value={heroSubtitle}
+                    onChange={(e) => setHeroSubtitle(e.target.value.slice(0, HERO_SUBTITLE_MAX))}
+                    placeholder="Masters Tournament Pool · Augusta National Golf Club"
+                    rows={2}
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-masters-green/30 focus:border-masters-green resize-none"
+                  />
+                  <p className="text-xs text-muted">
+                    Shown below the pool name in the hero. Leave blank for the default.
                   </p>
                 </div>
 

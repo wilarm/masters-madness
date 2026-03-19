@@ -45,9 +45,12 @@ export function Navbar() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
                 M
               </div>
-              <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
-                Masters Madness
-              </span>
+              {/* Show site name when signed out; PoolSwitcher replaces it when signed in */}
+              {!showUserButton && (
+                <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
+                  Masters Madness
+                </span>
+              )}
             </Link>
             {showUserButton && <PoolSwitcher />}
           </div>
