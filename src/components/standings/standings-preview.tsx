@@ -11,7 +11,7 @@ import type { PoolState } from "@/lib/pool-state";
 import type { StandingsParticipant } from "@/components/standings/standings-shell";
 
 // Placeholder data — will be replaced with Supabase realtime data
-const MOCK_STANDINGS = [
+const MOCK_STANDINGS: StandingsParticipant[] = [
   { rank: 1, name: "Ryan McKenzie", score: -12, movement: 0 },
   { rank: 2, name: "Wes Upchurch", score: -10, movement: 2 },
   { rank: 3, name: "Mike Walton", score: -9, movement: -1 },
@@ -149,10 +149,15 @@ export function StandingsPreview({ poolState = "pre_lock", showPicks = false, pa
                           className="flex items-center gap-2 sm:gap-3 cursor-pointer group text-left min-h-[44px] -my-1"
                         >
                           <Avatar name={entry.name} size="sm" />
-                          <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap min-w-0">
                             <span className="font-medium text-sm sm:text-base text-foreground group-hover:text-masters-green transition-colors truncate">
                               {entry.name}
                             </span>
+                            {entry.customTag && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-masters-gold/15 text-masters-gold-dark shrink-0">
+                                {entry.customTag}
+                              </span>
+                            )}
                             <span className="sm:hidden shrink-0">
                               <MovementBadge change={entry.movement} compact />
                             </span>
@@ -167,9 +172,16 @@ export function StandingsPreview({ poolState = "pre_lock", showPicks = false, pa
                       ) : (
                         <div className="flex items-center gap-2 sm:gap-3 min-h-[44px] -my-1">
                           <Avatar name={entry.name} size="sm" />
-                          <span className="font-medium text-sm sm:text-base text-foreground truncate">
-                            {entry.name}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span className="font-medium text-sm sm:text-base text-foreground truncate">
+                              {entry.name}
+                            </span>
+                            {entry.customTag && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-masters-gold/15 text-masters-gold-dark shrink-0">
+                                {entry.customTag}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </td>

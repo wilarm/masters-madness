@@ -74,6 +74,7 @@ export default async function StandingsPage({
       name: m.display_name ?? `Member ${i + 1}`,
       score: 0, // will be real scores once live scoring is wired up
       movement: 0,
+      customTag: m.custom_tag ?? null,
     }));
   }
 

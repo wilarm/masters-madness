@@ -12,6 +12,7 @@ export interface StandingsParticipant {
   name: string;
   score: number;
   movement: number;
+  customTag?: string | null;
 }
 
 interface StandingsShellProps {

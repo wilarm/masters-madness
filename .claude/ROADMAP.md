@@ -221,6 +221,12 @@
 
 ---
 
+## Phase 27 — Commissioner Tags in Standings ✅ (completed 2026-03-21)
+- [x] `StandingsParticipant` type extended with `customTag?: string | null`
+- [x] `standings/page.tsx` — passes `m.custom_tag` from pool members to participants
+- [x] `standings-preview.tsx` — renders tag pill (`bg-masters-gold/15 text-masters-gold-dark`) next to name in both pre-lock and post-lock row states; `MOCK_STANDINGS` typed as `StandingsParticipant[]`
+- [x] Commissioner dashboard Customize tab — split single "Custom Tag" input into separate **Emoji** (single grapheme) + **Tag Label** fields; save concatenates to `"🔥 Dark Horse"` format; existing tags parsed on load
+
 ## Upcoming Session Priorities (next build session)
 
 1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)

@@ -64,8 +64,20 @@ export function CommissionerDashboard({
   const [displayNames, setDisplayNames] = useState<Record<string, string>>(
     Object.fromEntries(initialMembers.map((m) => [m.user_id, m.display_name ?? ""]))
   );
-  const [customTags, setCustomTags] = useState<Record<string, string>>(
-    Object.fromEntries(initialMembers.map((m) => [m.user_id, m.custom_tag ?? ""]))
+  // Parse existing custom_tag into emoji + label parts
+  function parseTag(value: string | null): { emoji: string; label: string } {
+    if (!value) return { emoji: "", label: "" };
+    const first = [...value][0];
+    if (first && first.codePointAt(0)! > 255) {
+      return { emoji: first, label: value.slice(first.length).trimStart() };
+    }
+    return { emoji: "", label: value };
+  }
+  const [tagEmojis, setTagEmojis] = useState<Record<string, string>>(
+    Object.fromEntries(initialMembers.map((m) => [m.user_id, parseTag(m.custom_tag).emoji]))
+  );
+  const [tagLabels, setTagLabels] = useState<Record<string, string>>(
+    Object.fromEntries(initialMembers.map((m) => [m.user_id, parseTag(m.custom_tag).label]))
   );
   const [customSaved, setCustomSaved] = useState(false);
   const [customLoading, setCustomLoading] = useState(false);
@@ -150,7 +162,12 @@ export function CommissionerDashboard({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             display_name: displayNames[m.user_id] || null,
-            custom_tag: customTags[m.user_id] || null,
+            custom_tag: (() => {
+              const emoji = tagEmojis[m.user_id]?.trim() ?? "";
+              const label = tagLabels[m.user_id]?.trim() ?? "";
+              if (!label) return null;
+              return emoji ? `${emoji} ${label}` : label;
+            })(),
           }),
         })
       )
@@ -654,8 +671,7 @@ export function CommissionerDashboard({
                 </div>
               </div>
               <p className="text-sm text-muted mb-4">
-                Customize display names and add custom tags (e.g. &ldquo;Defending
-                Champ&rdquo;, &ldquo;Rookie&rdquo;) that appear next to each participant.
+                Customize display names and add custom tags (e.g. &ldquo;🏆 Defending Champ&rdquo;, &ldquo;🔥 Dark Horse&rdquo;) that appear next to each participant in standings.
               </p>
 
               <div className="space-y-4">
@@ -688,19 +704,35 @@ export function CommissionerDashboard({
                           className="text-sm"
                         />
                       </div>
-                      <div className="w-36 flex-shrink-0">
-                        <Label className="text-xs mb-1">Custom Tag</Label>
-                        <Input
-                          value={customTags[member.user_id] ?? ""}
-                          onChange={(e) =>
-                            setCustomTags((prev) => ({
-                              ...prev,
-                              [member.user_id]: e.target.value,
-                            }))
-                          }
-                          placeholder="Defending Champ"
-                          className="text-sm"
-                        />
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <div className="w-12">
+                          <Label className="text-xs mb-1">Emoji</Label>
+                          <Input
+                            value={tagEmojis[member.user_id] ?? ""}
+                            onChange={(e) => {
+                              // Keep only the first grapheme (emoji)
+                              const val = [...e.target.value][0] ?? "";
+                              setTagEmojis((prev) => ({ ...prev, [member.user_id]: val }));
+                            }}
+                            placeholder="🏆"
+                            className="text-sm text-center px-1"
+                            maxLength={2}
+                          />
+                        </div>
+                        <div className="w-32">
+                          <Label className="text-xs mb-1">Tag Label</Label>
+                          <Input
+                            value={tagLabels[member.user_id] ?? ""}
+                            onChange={(e) =>
+                              setTagLabels((prev) => ({
+                                ...prev,
+                                [member.user_id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Dark Horse"
+                            className="text-sm"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
