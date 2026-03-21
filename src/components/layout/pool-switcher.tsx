@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronDown, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,21 @@ export type PoolStub = {
   role: string;
 };
 
+// Pages that support the ?pool= query param
+const POOL_AWARE_PATHS = ["/standings", "/analytics", "/rules", "/picks"];
+
+function getPoolHref(slug: string, pathname: string, searchParams: URLSearchParams): string {
+  const isPoolAware = POOL_AWARE_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+  if (isPoolAware) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("pool", slug);
+    return `${pathname}?${params.toString()}`;
+  }
+  return `/standings?pool=${slug}`;
+}
+
 interface PoolSwitcherProps {
   pools: PoolStub[];
   activeSlug?: string;
@@ -20,6 +36,8 @@ interface PoolSwitcherProps {
 export function PoolSwitcher({ pools, activeSlug }: PoolSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -33,11 +51,12 @@ export function PoolSwitcher({ pools, activeSlug }: PoolSwitcherProps) {
 
   if (pools.length === 0) return null;
 
-  // Single pool — just a link
+  // Single pool — just a link that stays on current page
   if (pools.length === 1) {
+    const href = getPoolHref(pools[0].slug, pathname, searchParams);
     return (
       <Link
-        href={`/pool/${pools[0].slug}`}
+        href={href}
         className="hidden sm:flex items-center gap-1.5 rounded-lg border border-masters-green/20 bg-masters-green-light px-3 py-1.5 text-xs font-semibold text-masters-green hover:bg-masters-green/10 transition-colors max-w-[180px]"
       >
         <Trophy className="h-3.5 w-3.5 shrink-0" />
@@ -73,12 +92,20 @@ export function PoolSwitcher({ pools, activeSlug }: PoolSwitcherProps) {
           {pools.map((pool) => (
             <Link
               key={pool.id}
-              href={`/pool/${pool.slug}`}
+              href={getPoolHref(pool.slug, pathname, searchParams)}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-masters-green-light hover:text-masters-green transition-colors"
+              className={cn(
+                "flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                pool.slug === activeSlug
+                  ? "bg-masters-green-light text-masters-green"
+                  : "text-foreground hover:bg-masters-green-light hover:text-masters-green"
+              )}
             >
               <Trophy className="h-3.5 w-3.5 shrink-0 text-masters-green/50" />
               <span className="truncate">{pool.name}</span>
+              {pool.slug === activeSlug && (
+                <span className="ml-auto text-[10px] font-semibold text-masters-green/50">Active</span>
+              )}
             </Link>
           ))}
         </div>

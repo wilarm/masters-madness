@@ -1,13 +1,15 @@
-import { Trophy, TrendingUp, Users, Calendar, Info, Medal } from "lucide-react";
+import { Trophy, TrendingUp, Calendar, Info, Medal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Countdown } from "@/components/ui/countdown";
 import { Card, CardTitle } from "@/components/ui/card";
 import { StandingsShell } from "@/components/standings/standings-shell";
+import { type StandingsParticipant } from "@/components/standings/standings-shell";
 import { getPoolState, poolStateLabel, poolStateDotColor } from "@/lib/pool-state";
 import { auth } from "@clerk/nextjs/server";
 import { isPlatformAdmin } from "@/lib/auth";
-import { getPoolBySlug } from "@/lib/db/pools";
+import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { DEFAULT_RULES, type PayoutRow } from "@/lib/db/settings";
+import { redirect } from "next/navigation";
 
 // Tournament deadline: Thursday, April 9, 2026 5:00 AM MT (11:00 AM UTC)
 const PICKS_DEADLINE = new Date("2026-04-09T11:00:00Z");
@@ -30,6 +32,15 @@ export default async function StandingsPage({
 
   // Resolve pool-specific config if ?pool= is present
   const { pool: poolSlug } = await searchParams;
+
+  // Auth-aware redirect: signed-in users without a pool param get sent to their pool
+  if (userId && !poolSlug) {
+    const userPools = await getPoolsForUser(userId);
+    if (userPools.length > 0) {
+      redirect(`/standings?pool=${userPools[0].slug}`);
+    }
+  }
+
   const pool = poolSlug ? await getPoolBySlug(poolSlug) : null;
   const cfg = (pool?.config ?? {}) as Record<string, unknown>;
 
@@ -49,6 +60,22 @@ export default async function StandingsPage({
             return sum + (isNaN(n) ? 0 : n);
           }, 0)
           .toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+  // Pool config values for scoring info
+  const numTiers = typeof cfg.numTiers === "number" ? cfg.numTiers : 9;
+  const numScoring = typeof cfg.numScoring === "number" ? cfg.numScoring : 4;
+
+  // Real member data for signed-in pool members
+  let participants: StandingsParticipant[] | undefined;
+  if (pool && userId) {
+    const members = await getPoolMembers(pool.id);
+    participants = members.map((m, i) => ({
+      rank: i + 1,
+      name: m.display_name ?? `Member ${i + 1}`,
+      score: 0, // will be real scores once live scoring is wired up
+      movement: 0,
+    }));
+  }
 
   return (
     <div className="min-h-screen">
@@ -121,7 +148,7 @@ export default async function StandingsPage({
             value={prizePool}
             accent
           />
-          {/* Payouts card — replaces Entries */}
+          {/* Payouts card */}
           <PayoutsCard payouts={payouts} />
           <StatCard
             icon={TrendingUp}
@@ -142,13 +169,15 @@ export default async function StandingsPage({
           <Info className="h-4 w-4 text-masters-green shrink-0 mt-0.5" />
           <div className="text-sm text-masters-green/80 leading-relaxed">
             <span className="font-bold text-masters-green">How scoring works: </span>
-            Each player picks one golfer from each of 9 tiers. Your{" "}
-            <span className="font-semibold">best 4 of 9</span> golfers' cumulative
+            Each player picks one golfer from each of {numTiers} tiers. Your{" "}
+            <span className="font-semibold">best {numScoring} of {numTiers}</span> golfers' cumulative
             strokes-to-par count toward your score — lower is better. Standings
             update live each round during tournament week.{" "}
-            <span className="text-masters-green/60 text-xs">
-              (Tiers, score count, and rules are customizable per pool.)
-            </span>
+            {!pool && (
+              <span className="text-masters-green/60 text-xs">
+                (Tiers, score count, and rules are customizable per pool.)
+              </span>
+            )}
           </div>
         </div>
 
@@ -172,6 +201,7 @@ export default async function StandingsPage({
             isCommissioner={isCommissioner}
             showDemoToggle={!userId}
             defaultDemo={!userId}
+            participants={participants}
           />
         </Card>
       </div>
@@ -181,7 +211,6 @@ export default async function StandingsPage({
 
 // ── Payouts Card ──────────────────────────────────────────────────────────────
 function PayoutsCard({ payouts }: { payouts: PayoutRow[] }) {
-  // Show at most 3 rows to keep the card compact; overflow gets "…"
   const visible = payouts.slice(0, 3);
   const overflow = payouts.length - visible.length;
 
@@ -250,3 +279,4 @@ function StatCard({
     </Card>
   );
 }
+

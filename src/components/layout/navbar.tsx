@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { StartPoolButton } from "@/components/ui/start-pool-button";
@@ -46,15 +46,24 @@ export function Navbar() {
   }, [isSignedIn]);
 
   // Derive active pool from current URL (?pool=slug or /pool/[slug]/*)
-  const [urlPoolSlug, setUrlPoolSlug] = useState<string | null>(null);
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const fromQuery = params.get("pool");
-    const fromPath = pathname.match(/^\/pool\/([^/]+)/)?.[1] ?? null;
-    setUrlPoolSlug(fromQuery ?? fromPath);
-  }, [pathname]);
+  const searchParams = useSearchParams();
+  const poolFromQuery = searchParams.get("pool");
+  const poolFromPath = pathname.match(/^\/pool\/([^/]+)/)?.[1] ?? null;
+  const urlPoolSlug = poolFromQuery ?? poolFromPath;
 
-  const activePool = userPools.find((p) => p.slug === urlPoolSlug) ?? userPools[0];
+  // Persist active pool to localStorage and seed from it on load
+  const [storedSlug, setStoredSlug] = useState<string | null>(null);
+  useEffect(() => {
+    setStoredSlug(localStorage.getItem("mm_active_pool"));
+  }, []);
+  useEffect(() => {
+    if (urlPoolSlug) {
+      localStorage.setItem("mm_active_pool", urlPoolSlug);
+      setStoredSlug(urlPoolSlug);
+    }
+  }, [urlPoolSlug]);
+
+  const activePool = userPools.find((p) => p.slug === (urlPoolSlug ?? storedSlug)) ?? userPools[0];
   const activeSlug = activePool?.slug;
   const hasPool = isLoaded && isSignedIn && userPools.length > 0;
   const isCommish = activePool?.role === "commissioner";
@@ -109,8 +118,15 @@ export function Navbar() {
   ];
 
   function isActive(href: string) {
-    const base = href.split("?")[0];
-    return pathname === base || (base !== "/" && pathname.startsWith(base));
+    const [base, query] = href.split("?");
+    if (pathname !== base && !(base !== "/" && pathname.startsWith(base))) return false;
+    // If the link has a pool param, make sure it matches the active pool
+    if (query) {
+      const linkParams = new URLSearchParams(query);
+      const linkPool = linkParams.get("pool");
+      if (linkPool && linkPool !== activeSlug) return false;
+    }
+    return true;
   }
 
   return (
@@ -120,7 +136,7 @@ export function Navbar() {
 
           {/* Logo + Pool Switcher */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href={hasPool ? `/standings?pool=${activeSlug}` : "/"} className="flex items-center gap-3 group">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
                 M
               </div>

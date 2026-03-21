@@ -1,16 +1,19 @@
 import { Card } from "@/components/ui/card";
 import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
 import { getRulesContent } from "@/lib/db/settings";
-import { getPoolBySlug, getPoolMembers } from "@/lib/db/pools";
+import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { CopyShareButton } from "@/components/ui/share-button";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import {
   Trophy,
   DollarSign,
-  Clock,
-  Users,
-  Heart,
   Share2,
   CheckCircle,
+  PartyPopper,
+  Users,
+  Award,
+  Layers,
 } from "lucide-react";
 
 export const revalidate = 60; // revalidate every minute
@@ -21,6 +24,16 @@ export default async function RulesPage({
   searchParams: Promise<{ pool?: string }>;
 }) {
   const { pool: poolSlug } = await searchParams;
+  const { userId } = await auth();
+
+  // Auth-aware redirect
+  if (userId && !poolSlug) {
+    const userPools = await getPoolsForUser(userId);
+    if (userPools.length > 0) {
+      redirect(`/rules?pool=${userPools[0].slug}`);
+    }
+  }
+
   const [rules, pool] = await Promise.all([
     getRulesContent(),
     poolSlug ? getPoolBySlug(poolSlug) : null,
@@ -35,10 +48,14 @@ export default async function RulesPage({
   const poolPrizePool = config.prizePool as string | undefined;
   const poolVenmoLink = config.venmoLink as string | undefined;
   const poolCommunityMessage = config.communityMessage as string | undefined;
+  const poolCommunityTitle = config.communityMessageTitle as string | undefined;
+  const numTiers = typeof config.numTiers === "number" ? config.numTiers : 9;
+  const numScoring = typeof config.numScoring === "number" ? config.numScoring : 4;
+  const maxEntriesPerUser = typeof config.maxEntriesPerUser === "number" ? config.maxEntriesPerUser : 1;
 
   // Compute displayed values — pool config wins over global settings
   const entryFeeLabel = poolEntryFee != null && poolEntryFee > 0
-    ? `$${poolEntryFee} per entry`
+    ? `$${poolEntryFee}`
     : rules.entryFee;
 
   const autoPrizePool =
@@ -47,11 +64,15 @@ export default async function RulesPage({
       : null;
   const prizePoolLabel = poolPrizePool || autoPrizePool || null;
 
-  const paymentLabel = poolVenmoLink
-    ? poolVenmoLink
-    : rules.paymentInfo;
-
   const communityMessage = poolCommunityMessage || rules.communityMessage;
+
+  // Community message title: pool config > global rules > dynamic default
+  const defaultTitle = pool ? `Welcome to ${pool.name}` : rules.communityMessageTitle;
+  const communityTitle = poolCommunityTitle || defaultTitle;
+
+  const topPayout = Array.isArray(config.payouts) && (config.payouts as {place: string; amount: string}[]).length > 0
+    ? (config.payouts as {place: string; amount: string}[])[0]?.amount
+    : rules.payouts[0]?.amount;
 
   const shareUrl = pool
     ? `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com"}/pool/${pool.slug}`
@@ -61,31 +82,67 @@ export default async function RulesPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-12">
+      <div className="text-center mb-10">
         <h1 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">
           {pageTitle}
         </h1>
         <p className="text-lg text-muted mt-3 max-w-2xl mx-auto">
-          Welcome to the Masters Fantasy Golf Tournament.
-          Read the rules below, then head to the picks page to enter.
+          Rules, scoring, and everything you need to compete.
         </p>
       </div>
 
       <div className="space-y-6">
-        {/* Why Participate */}
+        {/* Community Message — always at top */}
         <Card>
           <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-danger/10 text-danger flex-shrink-0 mt-1">
-              <Heart className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
+              <PartyPopper className="h-5 w-5" />
             </div>
             <div>
               <h2 className="font-heading text-xl font-bold text-foreground mb-2">
-                Why Your Participation Matters
+                {communityTitle}
               </h2>
               <p className="text-muted leading-relaxed">{communityMessage}</p>
             </div>
           </div>
         </Card>
+
+        {/* Overview Tiles — 4 key stats at a glance */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Tile 1: Scoring */}
+          <OverviewTile
+            icon={Layers}
+            label="Scoring"
+            value={`${numScoring} of ${numTiers}`}
+            sublabel="golfers count"
+            accent="green"
+          />
+          {/* Tile 2: Entries */}
+          <OverviewTile
+            icon={Users}
+            label="Entries"
+            value={maxEntriesPerUser === 1 ? "1 entry" : `${maxEntriesPerUser} entries`}
+            sublabel="per person"
+            accent="blue"
+          />
+          {/* Tile 3: Entry Fee */}
+          <OverviewTile
+            icon={DollarSign}
+            label="Entry Fee"
+            value={poolEntryFee != null && poolEntryFee > 0 ? `$${poolEntryFee}` : (rules.entryFee.split(" ")[0] || "TBD")}
+            sublabel={poolVenmoLink ? undefined : "contact commissioner"}
+            venmoLink={poolVenmoLink}
+            accent="gold"
+          />
+          {/* Tile 4: Top Payout */}
+          <OverviewTile
+            icon={Award}
+            label="1st Place"
+            value={topPayout ?? "TBD"}
+            sublabel={prizePoolLabel ? `${prizePoolLabel} prize pool` : "prize pool"}
+            accent="gold"
+          />
+        </div>
 
         {/* How It Works */}
         <Card>
@@ -101,15 +158,15 @@ export default async function RulesPage({
               <div className="space-y-4">
                 <RuleItem
                   title="Selection"
-                  description="Select 1 golfer from each of the 9 groups (tiers based on odds to win)."
+                  description={`Select 1 golfer from each of the ${numTiers} groups (tiers based on odds to win).`}
                 />
                 <RuleItem
                   title="Scoring"
-                  description="Your team&rsquo;s scores are aggregated. The scores of your 4 lowest-scoring (best) golfers count towards your total."
+                  description={`Your team's scores are aggregated. The scores of your ${numScoring} lowest-scoring (best) golfers count towards your total.`}
                 />
                 <RuleItem
                   title="The Cut Rule"
-                  description="If more than 4 of your golfers miss the cut, your team will automatically use the cut line score as a replacement for each missing golfer beyond 4."
+                  description={`If more than ${numScoring} of your golfers miss the cut, your team will automatically use the cut line score as a replacement for each missing golfer beyond ${numScoring}.`}
                 />
               </div>
             </div>
@@ -123,68 +180,9 @@ export default async function RulesPage({
               See It in Action
             </h2>
             <p className="text-muted text-sm mb-4">
-              Watch how your pool score changes as golfers play. Your best 4 of 9 scores count — lower is better in golf!
+              Watch how your pool score changes as golfers play. Your best {numScoring} of {numTiers} scores count — lower is better in golf!
             </p>
             <ScoringVisualizer />
-          </div>
-        </Card>
-
-        {/* Entry Details */}
-        <Card>
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
-              <DollarSign className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-heading text-xl font-bold text-foreground mb-4">
-                Entry Details
-              </h2>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="rounded-lg bg-bg-muted p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="h-4 w-4 text-masters-green" />
-                    <span className="font-semibold text-foreground">Deadline</span>
-                  </div>
-                  <p className="text-muted text-sm">{rules.deadline}</p>
-                </div>
-
-                <div className="rounded-lg bg-bg-muted p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="h-4 w-4 text-masters-green" />
-                    <span className="font-semibold text-foreground">Entry Fee</span>
-                  </div>
-                  <p className="text-muted text-sm">{entryFeeLabel}</p>
-                </div>
-
-                <div className="rounded-lg bg-bg-muted p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="h-4 w-4 text-masters-green" />
-                    <span className="font-semibold text-foreground">Max Entries</span>
-                  </div>
-                  <p className="text-muted text-sm">{rules.maxEntries}</p>
-                </div>
-
-                <div className="rounded-lg bg-bg-muted p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="h-4 w-4 text-masters-green" />
-                    <span className="font-semibold text-foreground">Payment</span>
-                  </div>
-                  {poolVenmoLink ? (
-                    <a
-                      href={poolVenmoLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-masters-green font-medium text-sm hover:underline break-all"
-                    >
-                      {poolVenmoLink}
-                    </a>
-                  ) : (
-                    <p className="text-muted text-sm">{paymentLabel}</p>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         </Card>
 
@@ -196,7 +194,7 @@ export default async function RulesPage({
             </div>
             <div className="w-full">
               <h2 className="font-heading text-xl font-bold text-foreground mb-4">
-                Payouts & Prizes
+                Payouts &amp; Prizes
               </h2>
 
               {prizePoolLabel ? (
@@ -222,6 +220,37 @@ export default async function RulesPage({
             </div>
           </div>
         </Card>
+
+        {/* Entry Details — Payment only (fee + entries now in overview tiles) */}
+        {(poolVenmoLink || rules.paymentInfo) && (
+          <Card>
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
+                <DollarSign className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-heading text-xl font-bold text-foreground mb-2">
+                  Payment
+                </h2>
+                <p className="text-muted text-sm mb-2">
+                  Entry fee: <span className="font-semibold text-foreground">{entryFeeLabel}</span>
+                </p>
+                {poolVenmoLink ? (
+                  <a
+                    href={poolVenmoLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-masters-green text-white px-4 py-2 text-sm font-semibold hover:bg-masters-green/90 transition-colors"
+                  >
+                    Pay via Venmo →
+                  </a>
+                ) : (
+                  <p className="text-muted text-sm">{rules.paymentInfo}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Share */}
         <Card>
@@ -250,6 +279,53 @@ export default async function RulesPage({
   );
 }
 
+// ── Overview Tile ──────────────────────────────────────────────────────────────
+function OverviewTile({
+  icon: Icon,
+  label,
+  value,
+  sublabel,
+  venmoLink,
+  accent = "green",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sublabel?: string;
+  venmoLink?: string;
+  accent?: "green" | "gold" | "blue";
+}) {
+  const accentClasses = {
+    green: "bg-masters-green-light text-masters-green",
+    gold: "bg-masters-gold/15 text-masters-gold-dark",
+    blue: "bg-info/10 text-info",
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-white p-4 flex flex-col items-center text-center gap-2">
+      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${accentClasses[accent]}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+      <p className="font-heading text-xl font-bold text-foreground leading-tight">{value}</p>
+      {sublabel && !venmoLink && (
+        <p className="text-[11px] text-muted">{sublabel}</p>
+      )}
+      {venmoLink && (
+        <a
+          href={venmoLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] font-semibold text-masters-green hover:underline"
+        >
+          Pay via Venmo →
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── Rule Item ─────────────────────────────────────────────────────────────────
 function RuleItem({
   title,
   description,
@@ -265,6 +341,7 @@ function RuleItem({
   );
 }
 
+// ── Payout Row ────────────────────────────────────────────────────────────────
 function PayoutRow({
   place,
   amount,

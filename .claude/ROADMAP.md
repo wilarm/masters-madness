@@ -3,7 +3,7 @@
 **Tournament:** April 9–12, 2026 · **Picks Lock:** April 9, 2026 @ 5:00 AM MT
 **Live URL:** https://mastersmadness.com
 **Supabase Project:** amrwikktihzaafqbiawi (us-west-2)
-**Last updated:** 2026-03-19 (session 3)
+**Last updated:** 2026-03-21 (session 4)
 
 ---
 
@@ -226,3 +226,153 @@
 1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
 2. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
 3. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
+4. **Commissioner settings** — Add `numScoring`, `maxEntriesPerUser`, `communityMessageTitle` fields to creation wizard + settings UI
+5. **Admin rules editor** — Add `communityMessageTitle` field to admin panel rules editor
+
+---
+
+## Phase 24 — Pool Context Persistence & Auth-Aware Routing ✅ (completed 2026-03-21)
+
+**Goal:** Make pool context stick across tab navigation; prevent signed-in users from seeing marketing/generic pages.
+
+### 24A — Fix Active Pool Persistence in Navbar
+
+**Root cause (current bug):** `urlPoolSlug` in `Navbar` is derived inside a `useEffect` with `[pathname]` as the only dependency. Reading `window.location.search` inside a pathname-only effect means:
+- Switching pools while staying on the same page (e.g., going from pool-a → pool-b while on `/standings`) never updates `urlPoolSlug` because the pathname doesn't change.
+- Page refresh drops back to `userPools[0]` (no persistence of the last-used pool).
+
+**Fix plan:**
+- [ ] **24A-1** Replace `window.location.search` read in `useEffect([pathname])` with Next.js `useSearchParams()` hook — this is reactive to query param changes and eliminates the stale-read bug.
+- [ ] **24A-2** Persist active pool slug to `localStorage("mm_active_pool")` whenever it changes (pool switch, URL change). On mount, seed `activeSlug` from localStorage before the URL effect runs so it survives page refreshes.
+- [ ] **24A-3** `PoolSwitcher` currently navigates to `/pool/${slug}` (pool detail page) when switching pools. Change it to navigate to the **current page** with the new pool slug: e.g., if user is on `/rules?pool=old-slug`, clicking pool B goes to `/rules?pool=new-slug`. Use `usePathname()` + `useSearchParams()` to construct the target URL. Fall back to `/standings?pool=${slug}` for paths without `?pool=` support (e.g., `/leaderboard`, `/research`).
+- [ ] **24A-4** Mobile pool switcher (in the mobile drawer) applies the same logic as 24A-3.
+
+### 24B — Auth-Aware Page Routing
+
+**Goal:** Signed-in users with at least one pool should never land on the marketing/generic version of Standings, Analytics, or Rules.
+
+**Rules:**
+| User state | `/standings` (no pool param) | `/rules` (no pool param) | `/analytics` (no pool param) | `/` (home) |
+|---|---|---|---|---|
+| Signed out | Marketing demo ✅ | Global default rules ✅ | Demo analytics ✅ | Marketing ✅ |
+| Signed in, **no pool** | Show a "join a pool" prompt or redirect → `/join` | Global rules ✅ | Demo analytics ✅ | Marketing with "Join a Pool" CTA ✅ |
+| Signed in, **has pool(s)** | Redirect → `/standings?pool=[active]` | Redirect → `/rules?pool=[active]` | Redirect → `/analytics?pool=[active]` | Pool-aware home (see 24C) |
+
+- [ ] **24B-1** In `standings/page.tsx`, `rules/page.tsx`, `analytics/page.tsx`: when `userId` exists, user has pools, and `?pool=` is absent — server-side redirect to the same page with `?pool=[first pool slug]`. Use `getPoolsForUser()` + `redirect()` from Next.js.
+- [ ] **24B-2** `StandingsShell` on the standings page currently ignores the pool slug and shows demo/mock data even for authenticated pool members. Wire up `getPoolMembers(pool.id)` and pass real participants to `StandingsShell` (same pattern as `/pool/[slug]` page). The `showDemoToggle={!userId}` prop already exists — just needs real data fed in.
+- [ ] **24B-3** The "How scoring works" info banner on the standings page hardcodes "best 4 of 9" — replace with pool-config-driven values (`numScoring`, `numTiers`) when a pool slug is present.
+
+### 24C — Pool-Aware Home Page
+
+**Goal:** Signed-in users with a pool shouldn't be stuck on the marketing home page — the logo link and the home page itself should provide pool-context navigation.
+
+- [ ] **24C-1** In `Navbar`, change the logo `href="/"` to `href={hasPool ? \`/standings?pool=${activeSlug}\` : "/"}` so clicking the "M" logo goes to the user's pool standings, not the marketing home.
+- [ ] **24C-2** `app/page.tsx` (home): if the user is signed in and has pools, show a "Your Pools" section above the marketing hero with quick-links to each pool (Standings, My Picks, Rules). Keep the full marketing content below for unauthenticated visitors.
+- [ ] **24C-3** Home page CTAs ("Create a Pool" / "Join a Pool") should already be visible to signed-in users since they may want to join another pool — keep these.
+
+### 24D — Edge Cases to Handle
+
+- [ ] **Multi-pool users:** When a signed-in user with multiple pools visits a generic page, redirect to `?pool=[last-active]` (from localStorage preference), falling back to their first pool.
+- [ ] **Pool slug in URL takes precedence:** If someone deep-links `/rules?pool=specific-slug` to a signed-in user, don't override it with their preferred pool — respect the explicit slug.
+- [ ] **Pool you're not a member of:** If `?pool=someone-elses-pool`, display the pool's public info (same as `/pool/[slug]` page) but don't show pool-member-only content.
+- [ ] **First sign-in / sign-up redirect:** After Clerk sign-in, Clerk's `afterSignInUrl` / `afterSignUpUrl` should land users on `/standings?pool=[slug]` if they were redirected from a pool-specific page. Currently lands on `/`.
+- [ ] **`isActive()` in Navbar:** The active link check uses `pathname` only — a link to `/standings?pool=x` shows as active on `/standings?pool=y`. Fix: compare both pathname AND pool slug from the link href.
+
+---
+
+## Phase 25 — My Picks: Confirmation View & Post-Lock State ✅ (completed 2026-03-21)
+
+**Goal:** When a user has already submitted picks, visiting the My Picks tab should default to a confirmation/summary view. After the picks lock, show read-only picks with no edit option.
+
+### Current state
+- `submitted` is local React state — resets on every page load.
+- Existing picks are loaded into the picker UI (correct behavior during pick-making), but there's no indication to the user that their picks are already saved.
+- No distinction between pre-lock (editable) and post-lock (read-only) states.
+- `entry_num` hardcoded as `1` — no support for multiple entries even if the pool allows it.
+
+### 25A — Confirmation View on Load
+- [ ] **25A-1** After `useEffect` loads existing picks from `GET /api/pools/[slug]/picks`, if picks are found (at least 1 tier filled), immediately set `submitted = true` to show the confirmation view. The user sees their picks and an "Edit Picks" button.
+- [ ] **25A-2** Confirmation view improvements:
+  - Show the golfer's name, tier label, and flag (country emoji) in a clean card grid.
+  - Show a "Last updated: [timestamp]" line using `pick.updated_at` from the API response.
+  - Show a green "Picks saved" badge with the submission timestamp.
+  - Show the pool name prominently at the top.
+- [ ] **25A-3** "Edit Picks" button sets `submitted = false` and drops back into the picker UI with picks pre-loaded (already works).
+
+### 25B — Post-Lock Read-Only Mode
+- [ ] **25B-1** Check pool state (`getPoolState()` or from pool config) in the picks page. If state is `post_lock`, `in_progress`, or `complete`, show the confirmation view with NO "Edit Picks" button. Add a "Picks are locked" banner.
+- [ ] **25B-2** The API (`POST /api/pools/[slug]/picks`) already rejects saves after lock — the UI should preemptively prevent attempts rather than waiting for an API error.
+- [ ] **25B-3** If user has no picks and the pool is locked — show an "Oops, you missed the deadline" empty state with a link to watch standings.
+
+### 25C — Multiple Entries (if pool allows)
+- [ ] **25C-1** Pool config needs `maxEntriesPerUser` field (add to DB pool config schema, commissioner creation wizard, and commissioner settings UI).
+- [ ] **25C-2** If `maxEntriesPerUser > 1`, the confirmation view shows entry tabs ("Entry 1", "Entry 2", etc.). Clicking an entry shows that lineup.
+- [ ] **25C-3** If user has submitted entry 1 but entry 2 is empty (and pool allows 2), show a "Submit Entry 2" card alongside the Entry 1 confirmation — clicking it opens the picker for entry 2.
+
+### 25D — No Pool Context State
+- [ ] **25D-1** If user navigates to `/picks` without a `?pool=` param while signed in with a pool, redirect to `/picks?pool=[activeSlug]` rather than showing the "Open from your pool page to save picks" warning.
+- [ ] **25D-2** If genuinely no pool (new user), keep the current demo/preview behavior but prompt to join/create a pool.
+
+---
+
+## Phase 26 — Rules Page Redesign ✅ (completed 2026-03-21)
+
+**Goal:** Replace the scattered entry details cards with 4 prominent overview tiles at the top. Make all values dynamic from pool config. Rename/rework the community message section.
+
+### Pool config fields needed (prerequisites)
+Before building the Rules redesign, we need two fields added to the pool config schema:
+- [ ] **26-pre-1** `numScoring` — how many of your golfers count toward your total score (currently hardcoded as 4 in all UI copy). Add to: pool creation wizard (Step 2), commissioner settings PATCH endpoint, `pool.config` type.
+- [ ] **26-pre-2** `maxEntriesPerUser` — max lineups a single participant can submit. Add to: pool creation wizard, commissioner settings.
+
+### 26A — Community Message Section
+- [ ] **26A-1** Move the community message card to the very top of the page (above the new overview tiles). It's already there — keep the position.
+- [ ] **26A-2** Change the section header from "Why Your Participation Matters" to a commissioner-configurable title. Add `communityMessageTitle` field to `RulesContent` / pool config.
+  - Default title: `"Welcome to [pool name]"` (or `"Welcome to Masters Madness 2026"` when no pool).
+  - Change the icon from `Heart` to `Trophy` or `PartyPopper` for a more celebratory / generic vibe.
+- [ ] **26A-3** Commissioner can edit this title in the Commissioner Settings → Customize tab (alongside the message body).
+
+### 26B — Overview Tiles (4 horizontal tiles)
+
+Place these **below** the community message, **above** the How It Works / Simulator section.
+
+| Tile | Value source | Fallback |
+|---|---|---|
+| **Scoring** — "Best X of Y count" | `pool.config.numScoring` / `pool.config.numTiers` | 4 of 9 |
+| **Entries** — "X entry per person" | `pool.config.maxEntriesPerUser` | "1 entry" |
+| **Entry Fee** — "$X per entry" + payment link below | `pool.config.entryFee` + `pool.config.venmoLink` | global settings fee |
+| **Payouts** — top payout % or amount | `pool.config.payouts[0].amount` | 1st place from default payouts |
+
+- [ ] **26B-1** Build `<RulesOverviewTiles>` client (or server) component — 4 equal-width square tiles in a horizontal row (responsive: 2×2 on mobile, 4×1 on desktop).
+- [ ] **26B-2** Each tile: large centered value, small label below, optional sublabel (e.g., payment link under entry fee tile).
+- [ ] **26B-3** Entry Fee tile: if `venmoLink` is set, render a clickable Venmo link below the fee amount (small text, opens in new tab).
+- [ ] **26B-4** Scoring tile: display as "Best **4** of **9**" with the numbers bold/highlighted.
+
+### 26C — How It Works section updates
+- [ ] **26C-1** The "Selection" rule item currently hardcodes "9 groups" — replace with `numTiers` from pool config.
+- [ ] **26C-2** The "Scoring" rule item hardcodes "best 4" — replace with `numScoring`.
+- [ ] **26C-3** The `ScoringVisualizer` component uses hardcoded 9-tier / 4-count logic internally — wire `numTiers` and `numScoring` props into it.
+
+### 26D — Entry Details section
+- [ ] **26D-1** Now that the 4 tiles cover fee/entries/payouts, the separate "Entry Details" card below can be collapsed or removed to avoid duplication. Keep only the "Payment" and "Deadline" details cards (the fee and max entries are now in the overview tiles).
+- [ ] **26D-2** Keep the "Payouts & Prizes" card and the "Spread the Word" share card as-is.
+
+---
+
+## Additional Edge Cases (applies across phases)
+
+### Data model gaps
+- [ ] `pool.config` type needs `numScoring` and `maxEntriesPerUser` — add TypeScript typing in `src/types/index.ts` and update the pool config DB schema/migration if needed.
+- [ ] The `settings` table `RulesContent` type needs `communityMessageTitle` field added.
+
+### Commissioner settings gaps
+- [ ] Commissioner dashboard → Settings tab currently lets the commish edit: name, prize pool, entry fee, Venmo link. Need to add: numScoring, maxEntriesPerUser, communityMessageTitle.
+- [ ] Pool creation wizard (Step 2 — Scoring Rules) should expose numScoring and maxEntriesPerUser as inputs (currently may hardcode defaults).
+
+### Standings page — real member data
+- The standings page for a signed-in pool member currently falls back to demo/mock data. It should show real pool members' names even before tournament scores exist (show "—" for score columns pre-lock). This overlaps with Phase 24B-2.
+
+### Leaderboard vs Standings
+- These are two different concepts that may confuse users: "Leaderboard" = real golf leaderboard (Phase 8); "Standings" = pool standings. Ensure nav labels and page headers make this distinction clear. Consider renaming "Leaderboard" to "Golf Leaderboard" in the nav.
+
+### isActive() link highlighting in Navbar
+- Current `isActive()` checks pathname only. `/standings?pool=x` and `/standings?pool=y` both "match" `/standings`. This means both pools' Standings links appear active simultaneously. Fix: include pool slug in the active check.

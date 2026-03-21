@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Navbar } from "@/components/layout/navbar";
+import { Suspense } from "react";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-bg antialiased">
         <ClerkProvider>
-          <Navbar />
+          <Suspense fallback={<div className="h-16 border-b border-border" />}>
+            <Navbar />
+          </Suspense>
           <main>{children}</main>
         </ClerkProvider>
       </body>
