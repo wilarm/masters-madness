@@ -3,7 +3,7 @@
 **Tournament:** April 9–12, 2026 · **Picks Lock:** April 9, 2026 @ 5:00 AM MT
 **Live URL:** https://mastersmadness.com
 **Supabase Project:** amrwikktihzaafqbiawi (us-west-2)
-**Last updated:** 2026-03-21 (session 5)
+**Last updated:** 2026-03-21 (session 6)
 
 ---
 
@@ -228,14 +228,20 @@
 - [x] `standings-preview.tsx` — renders tag pill (`bg-masters-gold/15 text-masters-gold-dark`) next to name in both pre-lock and post-lock row states; `MOCK_STANDINGS` typed as `StandingsParticipant[]`
 - [x] Commissioner dashboard Customize tab — split single "Custom Tag" input into separate **Emoji** (single grapheme) + **Tag Label** fields; save concatenates to `"🔥 Dark Horse"` format; existing tags parsed on load
 
+### Session 6 — Branding & Navbar (completed 2026-03-21)
+- [x] **OG image** — `public/og-image.png` (1200×630) added for social sharing
+- [x] **Logo sheet** — `public/logo-sheet.png` added (horizontal lockup + square icon)
+- [x] **Favicon icon** — `public/favicon-icon.png` (Gemini #18 flag icon, green background); also copied to `src/app/icon.png` for browser tab auto-favicon via Next.js App Router
+- [x] **Navbar logo** — replaced "M" placeholder with real icon (`next/image`, 28×28, `rounded-lg`); always links to homepage; "Masters Madness" text alongside (hidden on mobile)
+- [x] **Standings hero** — compact green bar for signed-in users; full marketing hero for signed-out
+- [x] **Standings fullscreen** — removed dark backdrop overlay; fullscreen view is pure white
+
 ## Upcoming Session Priorities (next build session)
 
 ### Near-term (pre-Masters launch)
-1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
-2. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
-3. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
-4. **Commissioner settings** — Add `numScoring`, `maxEntriesPerUser`, `communityMessageTitle` fields to creation wizard + settings UI
-5. **Admin rules editor** — Add `communityMessageTitle` field to admin panel rules editor
+1. **Phase 8** — Live scoring (golf data API, scores cron, pool standings calc — tournament April 9)
+2. **Commissioner settings** — Add `numScoring`, `maxEntriesPerUser`, `communityMessageTitle` fields to creation wizard + settings UI
+3. **Resend env vars** — Add `RESEND_API_KEY` + `EMAIL_FROM` to Vercel environment variables (manual step)
 
 ### Post-Masters growth (Phases 28–32)
 6. **Phase 28** — Tournament data model (`tournaments` table, link pools, data-driven pool state)
