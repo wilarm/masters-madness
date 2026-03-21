@@ -3,7 +3,7 @@
 **Tournament:** April 9–12, 2026 · **Picks Lock:** April 9, 2026 @ 5:00 AM MT
 **Live URL:** https://mastersmadness.com
 **Supabase Project:** amrwikktihzaafqbiawi (us-west-2)
-**Last updated:** 2026-03-21 (session 6)
+**Last updated:** 2026-03-21 (session 7)
 
 ---
 
@@ -228,6 +228,14 @@
 - [x] `standings-preview.tsx` — renders tag pill (`bg-masters-gold/15 text-masters-gold-dark`) next to name in both pre-lock and post-lock row states; `MOCK_STANDINGS` typed as `StandingsParticipant[]`
 - [x] Commissioner dashboard Customize tab — split single "Custom Tag" input into separate **Emoji** (single grapheme) + **Tag Label** fields; save concatenates to `"🔥 Dark Horse"` format; existing tags parsed on load
 
+### Session 7 — Standings Pool Overview + Invite (completed 2026-03-21)
+- [x] **Pool overview tiles** — 4 compact tiles above standings table (Scoring, Entries, Entry Fee, 1st Place); only shown when `?pool=slug` is present; reflects pool config (`numTiers`, `numScoring`, `maxEntriesPerUser`, `entryFee`, `payouts`)
+- [x] **Invite Friends button** — native share sheet on mobile, clipboard fallback on desktop; links to `/pool/[slug]`; shown above standings table for pool-specific views
+- [x] **View full rules link** — alongside invite button, links to `/rules?pool=[slug]`
+- [x] **Members always fetched** — `getPoolMembers` called whenever pool is present (not just for signed-in users); enables member count tile + auto prize pool calculation
+- [x] **Resend lazy init fix** — `new Resend(key)` moved into `getResend()` helper so missing `RESEND_API_KEY` env var no longer crashes the Vercel build at page-data collection time
+- [x] **New link thumbnail** — `public/thumbnail.png` (Masters Madness banner with flag icon, green grid background); wired as `og:image` and `twitter:image` in root layout and per-pool `generateMetadata`
+
 ### Session 6 — Branding & Navbar (completed 2026-03-21)
 - [x] **OG image** — `public/og-image.png` (1200×630) added for social sharing
 - [x] **Logo sheet** — `public/logo-sheet.png` added (horizontal lockup + square icon)
@@ -241,7 +249,7 @@
 ### Near-term (pre-Masters launch)
 1. **Phase 8** — Live scoring (golf data API, scores cron, pool standings calc — tournament April 9)
 2. **Commissioner settings** — Add `numScoring`, `maxEntriesPerUser`, `communityMessageTitle` fields to creation wizard + settings UI
-3. **Resend env vars** — Add `RESEND_API_KEY` + `EMAIL_FROM` to Vercel environment variables (manual step)
+3. **Resend env vars** — Add `RESEND_API_KEY` + `EMAIL_FROM` to Vercel environment variables (manual step, required for emails to work in production)
 
 ### Post-Masters growth (Phases 28–32)
 6. **Phase 28** — Tournament data model (`tournaments` table, link pools, data-driven pool state)
