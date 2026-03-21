@@ -63,13 +63,13 @@ export async function generateMetadata({
       url,
       type: "website",
       siteName: "Masters Madness",
-      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: pool.name }],
+      images: [{ url: "/thumbnail.png", width: 1200, height: 630, alt: pool.name }],
     },
     twitter: {
       card: "summary_large_image",
       title: pool.name,
       description,
-      images: ["/og-image.png"],
+      images: ["/thumbnail.png"],
     },
   };
 }

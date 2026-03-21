@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/og-image.png",
+        url: "/thumbnail.png",
         width: 1200,
         height: 630,
         alt: "Masters Madness 2026 — Masters Tournament Fantasy Pool · April 9–12, 2026",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     description:
       "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
     site: "@mastersmadness",
-    images: ["/og-image.png"],
+    images: ["/thumbnail.png"],
   },
   robots: {
     index: true,
