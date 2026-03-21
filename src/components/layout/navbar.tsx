@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
@@ -137,9 +138,14 @@ export function Navbar() {
           {/* Logo + Pool Switcher */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
-                M
-              </div>
+              <Image
+                src="/favicon-icon.png"
+                alt="Masters Madness"
+                width={36}
+                height={36}
+                className="rounded-lg transition-transform duration-200 group-hover:scale-105"
+                priority
+              />
               <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
                 Masters Madness
               </span>
