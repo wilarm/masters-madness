@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 const FROM = process.env.EMAIL_FROM ?? "Masters Madness <noreply@emails.mastersmadness.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://mastersmadness.com";
 
@@ -125,7 +127,7 @@ export async function sendPickConfirmation({
     <p style="margin:0;font-size:12px;color:#9ca3af;">You received this because you submitted picks to ${poolName} on Masters Madness.</p>
   `;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to,
     subject: `✅ Picks confirmed — ${poolName}`,
@@ -173,7 +175,7 @@ export async function sendPoolJoined({
     <p style="margin:0;font-size:12px;color:#9ca3af;">You received this because you joined ${poolName} on Masters Madness.</p>
   `;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to,
     subject: `You joined ${poolName} — Masters Madness`,
@@ -222,7 +224,7 @@ export async function sendAnnouncement({
   // Send one email per recipient (Resend has batch limit; BCC alternative would hide addresses)
   const results = await Promise.allSettled(
     to.map((email) =>
-      resend.emails.send({
+      getResend().emails.send({
         from: FROM,
         to: email,
         subject: `[${poolName}] ${subject}`,
@@ -259,7 +261,7 @@ export async function sendDeadlineReminder({
     <p style="margin:0;font-size:12px;color:#9ca3af;">You received this because you're a member of ${poolName} on Masters Madness. Picks lock April 9 at 5:00 AM MT.</p>
   `;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to,
     subject: `⏰ Picks deadline tomorrow — ${poolName}`,
