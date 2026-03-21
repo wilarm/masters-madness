@@ -143,7 +143,7 @@ export function Navbar() {
                 alt="Masters Madness"
                 width={28}
                 height={28}
-                className="block rounded-xl transition-transform duration-200 group-hover:scale-105"
+                className="block rounded-lg transition-transform duration-200 group-hover:scale-105"
                 priority
               />
               <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
