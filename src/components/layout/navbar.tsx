@@ -141,9 +141,9 @@ export function Navbar() {
               <Image
                 src="/favicon-icon.png"
                 alt="Masters Madness"
-                width={36}
-                height={36}
-                className="rounded-lg transition-transform duration-200 group-hover:scale-105"
+                width={28}
+                height={28}
+                className="block rounded-md transition-transform duration-200 group-hover:scale-105"
                 priority
               />
               <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
