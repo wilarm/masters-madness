@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, Calendar, Info, Medal } from "lucide-react";
+import { Trophy, TrendingUp, Calendar, Info, Medal, Layers, Users, DollarSign, Award, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Countdown } from "@/components/ui/countdown";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { isPlatformAdmin } from "@/lib/auth";
 import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { DEFAULT_RULES, type PayoutRow } from "@/lib/db/settings";
 import { redirect } from "next/navigation";
+import { ShareButton } from "@/components/ui/share-button";
 
 // Tournament deadline: Thursday, April 9, 2026 5:00 AM MT (11:00 AM UTC)
 const PICKS_DEADLINE = new Date("2026-04-09T11:00:00Z");
@@ -44,35 +45,47 @@ export default async function StandingsPage({
   const pool = poolSlug ? await getPoolBySlug(poolSlug) : null;
   const cfg = (pool?.config ?? {}) as Record<string, unknown>;
 
+  // Always fetch members when pool is present (needed for count + standings)
+  const members = pool ? await getPoolMembers(pool.id) : [];
+
   // Payouts: pool config overrides default
   const payouts: PayoutRow[] =
     Array.isArray(cfg.payouts) && cfg.payouts.length > 0
       ? (cfg.payouts as PayoutRow[])
       : DEFAULT_RULES.payouts;
 
-  // Prize pool display
+  // Pool config values
+  const numTiers = typeof cfg.numTiers === "number" ? cfg.numTiers : 9;
+  const numScoring = typeof cfg.numScoring === "number" ? cfg.numScoring : 4;
+  const maxEntriesPerUser = typeof cfg.maxEntriesPerUser === "number" ? cfg.maxEntriesPerUser : 1;
+  const entryFeeNum = cfg.entryFee != null ? Number(cfg.entryFee) : 0;
+  const venmoLink = typeof cfg.venmoLink === "string" ? cfg.venmoLink : undefined;
+  const topPayout = payouts[0]?.amount ?? "TBD";
+
+  // Prize pool: explicit override > auto-calc from members × fee > default sum
+  const autoPrizePool = entryFeeNum > 0 && members.length > 0
+    ? `$${(members.length * entryFeeNum).toLocaleString()}`
+    : null;
   const prizePool: string =
     typeof cfg.prizePool === "string"
       ? cfg.prizePool
-      : DEFAULT_RULES.payouts
+      : autoPrizePool ?? DEFAULT_RULES.payouts
           .reduce((sum, p) => {
             const n = parseFloat(p.amount.replace(/[^0-9.]/g, ""));
             return sum + (isNaN(n) ? 0 : n);
           }, 0)
           .toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-  // Pool config values for scoring info
-  const numTiers = typeof cfg.numTiers === "number" ? cfg.numTiers : 9;
-  const numScoring = typeof cfg.numScoring === "number" ? cfg.numScoring : 4;
+  const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com";
+  const poolShareUrl = pool ? `${APP_URL}/pool/${pool.slug}` : null;
 
-  // Real member data for signed-in pool members
+  // Participants for standings table (signed-in users)
   let participants: StandingsParticipant[] | undefined;
   if (pool && userId) {
-    const members = await getPoolMembers(pool.id);
     participants = members.map((m, i) => ({
       rank: i + 1,
       name: m.display_name ?? `Member ${i + 1}`,
-      score: 0, // will be real scores once live scoring is wired up
+      score: 0,
       movement: 0,
       customTag: m.custom_tag ?? null,
     }));
@@ -205,6 +218,63 @@ export default async function StandingsPage({
           </div>
         )}
 
+        {/* Pool Overview — only shown when viewing a specific pool */}
+        {pool && (
+          <div className="mb-6 space-y-3">
+            {/* Tiles row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <OverviewTile
+                icon={Layers}
+                label="Scoring"
+                value={`${numScoring} of ${numTiers}`}
+                sublabel="golfers count"
+                accent="green"
+              />
+              <OverviewTile
+                icon={Users}
+                label="Entries"
+                value={`${members.length}`}
+                sublabel={maxEntriesPerUser === 1 ? "1 per person" : `up to ${maxEntriesPerUser} each`}
+                accent="blue"
+              />
+              <OverviewTile
+                icon={DollarSign}
+                label="Entry Fee"
+                value={entryFeeNum > 0 ? `$${entryFeeNum}` : "Free"}
+                sublabel={venmoLink ? undefined : undefined}
+                venmoLink={entryFeeNum > 0 ? venmoLink : undefined}
+                accent="gold"
+              />
+              <OverviewTile
+                icon={Award}
+                label="1st Place"
+                value={topPayout}
+                sublabel={`${prizePool} pool`}
+                accent="gold"
+              />
+            </div>
+
+            {/* Invite button + rules link */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {poolShareUrl && (
+                <ShareButton
+                  url={poolShareUrl}
+                  title={pool.name}
+                  text={`Join ${pool.name} on Masters Madness!`}
+                  label="Invite Friends"
+                  className="inline-flex items-center gap-2 rounded-lg bg-masters-green text-white px-4 py-2 text-sm font-semibold hover:bg-masters-green/90 active:scale-[0.98] transition-all cursor-pointer"
+                />
+              )}
+              <a
+                href={`/rules?pool=${pool.slug}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-bg-muted transition-colors"
+              >
+                View full rules →
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Standings Table */}
         <Card className="overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4 sm:mb-6">
@@ -229,6 +299,52 @@ export default async function StandingsPage({
           />
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ── Pool Overview Tile ────────────────────────────────────────────────────────
+function OverviewTile({
+  icon: Icon,
+  label,
+  value,
+  sublabel,
+  venmoLink,
+  accent = "green",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sublabel?: string;
+  venmoLink?: string;
+  accent?: "green" | "gold" | "blue";
+}) {
+  const accentClasses = {
+    green: "bg-masters-green-light text-masters-green",
+    gold: "bg-masters-gold/15 text-masters-gold-dark",
+    blue: "bg-info/10 text-info",
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-white p-3 sm:p-4 flex flex-col items-center text-center gap-1.5">
+      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${accentClasses[accent]}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+      <p className="font-heading text-lg font-bold text-foreground leading-tight">{value}</p>
+      {sublabel && !venmoLink && (
+        <p className="text-[10px] text-muted">{sublabel}</p>
+      )}
+      {venmoLink && (
+        <a
+          href={venmoLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-semibold text-masters-green hover:underline"
+        >
+          Pay via Venmo →
+        </a>
+      )}
     </div>
   );
 }
