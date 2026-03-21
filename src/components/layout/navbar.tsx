@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
@@ -137,17 +136,13 @@ export function Navbar() {
 
           {/* Logo + Pool Switcher */}
           <div className="flex items-center gap-3">
-            <Link href={hasPool ? `/standings?pool=${activeSlug}` : "/"} className="flex items-center group">
-              <div className="overflow-hidden rounded-lg transition-transform duration-200 group-hover:scale-105 h-9 w-[135px]">
-                <Image
-                  src="/og-image.png"
-                  alt="Masters Madness"
-                  width={405}
-                  height={108}
-                  className="object-cover object-[center_38%] w-full h-full"
-                  priority
-                />
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-masters-green text-white font-heading text-sm font-bold transition-transform duration-200 group-hover:scale-105">
+                M
               </div>
+              <span className="font-heading text-xl font-bold text-foreground hidden sm:block">
+                Masters Madness
+              </span>
             </Link>
             {showUserButton && <PoolSwitcher pools={userPools} activeSlug={activeSlug} />}
           </div>
