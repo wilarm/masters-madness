@@ -63,3 +63,38 @@ export async function updateRulesContent(
 
   return !error;
 }
+
+// ─── Current Event ────────────────────────────────────────────────────────────
+
+export type CurrentEvent = {
+  /** External event ID (e.g. ESPN event ID) */
+  eventId: string;
+  /** Human-readable event name */
+  eventName: string;
+  /** ISO timestamp of when this was last updated by the cron */
+  updatedAt: string;
+};
+
+/**
+ * Returns the currently-active tournament event stored by the cron job.
+ * Returns null if no event has been persisted yet.
+ */
+export async function getCurrentEvent(): Promise<CurrentEvent | null> {
+  const db = createServiceClient();
+  const { data } = await db
+    .from("settings")
+    .select("value")
+    .eq("key", "current_event")
+    .single();
+  if (!data?.value) return null;
+  return data.value as CurrentEvent;
+}
+
+/** Persists the currently-active tournament (called by cron on each successful fetch) */
+export async function setCurrentEvent(event: CurrentEvent): Promise<boolean> {
+  const db = createServiceClient();
+  const { error } = await db
+    .from("settings")
+    .upsert({ key: "current_event", value: event as unknown as Record<string, unknown> });
+  return !error;
+}

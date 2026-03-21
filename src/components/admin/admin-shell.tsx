@@ -15,12 +15,130 @@ import {
   Lock,
   Play,
   CheckCircle,
+  Database,
+  Trash2,
 } from "lucide-react";
 import type { AdminPool, SystemStats } from "@/lib/db/admin";
 import type { RulesContent } from "@/lib/db/settings";
 import type { PoolState } from "@/lib/pool-state";
 import { cn } from "@/lib/utils";
 import { RulesEditor } from "./rules-editor";
+
+// ─── Tournament Actions ────────────────────────────────────────────────────────
+function TournamentActions() {
+  const [eventId, setEventId] = useState("");
+  const [loading, setLoading] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function seedGolfers() {
+    setLoading("seed");
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/seed-golfers", { method: "POST" });
+      const data = await res.json();
+      setResult(res.ok ? `✓ Seeded ${data.inserted} of ${data.total} golfers` : `Error: ${data.error}`);
+    } catch {
+      setResult("Network error");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function clearScores() {
+    if (!eventId.trim()) {
+      setResult("Enter an event ID first");
+      return;
+    }
+    if (!confirm(`Clear all scores for event "${eventId}"? This cannot be undone.`)) return;
+    setLoading("clear");
+    setResult(null);
+    try {
+      const res = await fetch(`/api/admin/seed-golfers?clearScores=true&eventId=${encodeURIComponent(eventId)}`, { method: "POST" });
+      const data = await res.json();
+      setResult(res.ok ? `✓ Cleared scores for event ${data.clearedScoresFor}, then seeded ${data.inserted} golfers` : `Error: ${data.error}`);
+    } catch {
+      setResult("Network error");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function triggerCron() {
+    if (!eventId.trim()) {
+      setResult("Enter a GOLF_EVENT_ID first (set it in Vercel env vars too)");
+      return;
+    }
+    setLoading("cron");
+    setResult(null);
+    try {
+      const res = await fetch(`/api/cron/scores`);
+      const data = await res.json();
+      setResult(res.ok
+        ? `✓ Fetched ${data.golfers} golfers, upserted ${data.upserted} scores (${data.skipped} skipped)`
+        : `Error: ${data.error}`);
+    } catch {
+      setResult("Network error");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  return (
+    <Card>
+      <CardTitle className="text-base mb-1 flex items-center gap-2">
+        <Database className="h-4 w-4 text-masters-green" />
+        Tournament Data
+      </CardTitle>
+      <p className="text-xs text-muted mb-4">
+        Seed golfers from the local players.ts dataset, or trigger a manual score fetch.
+        Set <code className="bg-muted/20 px-1 rounded text-xs">GOLF_EVENT_ID</code> in Vercel env vars to the ESPN event ID for the tournament.
+      </p>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="ESPN Event ID (e.g. 401353228)"
+          value={eventId}
+          onChange={(e) => setEventId(e.target.value)}
+          className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-masters-green/30"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={seedGolfers}
+          disabled={!!loading}
+          className="inline-flex items-center gap-2 rounded-lg bg-masters-green px-4 py-2 text-sm font-semibold text-white hover:bg-masters-green-dark transition-colors disabled:opacity-50"
+        >
+          <Database className="h-4 w-4" />
+          {loading === "seed" ? "Seeding…" : "Seed Golfers"}
+        </button>
+        <button
+          onClick={triggerCron}
+          disabled={!!loading}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted/10 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={cn("h-4 w-4", loading === "cron" && "animate-spin")} />
+          {loading === "cron" ? "Fetching…" : "Fetch Scores Now"}
+        </button>
+        <button
+          onClick={clearScores}
+          disabled={!!loading || !eventId.trim()}
+          className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-40"
+        >
+          <Trash2 className="h-4 w-4" />
+          {loading === "clear" ? "Clearing…" : "Clear Scores + Reseed"}
+        </button>
+      </div>
+
+      {result && (
+        <p className={cn("mt-3 text-sm font-medium", result.startsWith("✓") ? "text-emerald-600" : "text-red-600")}>
+          {result}
+        </p>
+      )}
+    </Card>
+  );
+}
 
 const STATE_CONFIG: Record<PoolState, { label: string; color: string; icon: React.ElementType }> = {
   pre_lock:    { label: "Pre-Lock",    color: "bg-blue-100 text-blue-700 border-blue-200",    icon: ClipboardList },
@@ -247,6 +365,9 @@ export function AdminShell({ pools: initialPools, stats, rules }: AdminShellProp
           {filtered.length} of {pools.length} pools
         </p>
       </Card>
+
+      {/* Tournament Actions */}
+      <TournamentActions />
 
       {/* Rules Editor */}
       <RulesEditor initialRules={rules} />

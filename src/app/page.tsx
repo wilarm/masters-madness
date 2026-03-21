@@ -13,8 +13,13 @@ import {
   Microscope,
   Settings2,
   Zap,
+  ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
+import { getAuthUserId } from "@/lib/auth";
+import { getPoolsForUser } from "@/lib/db/pools";
+import type { PoolWithRole } from "@/lib/db/pools";
 
 // ─── Hero Section ──────────────────────────────────────────────────────────────
 function HeroSection() {
@@ -939,10 +944,65 @@ function FinalCTASection() {
   );
 }
 
+// ─── Your Pools Section (signed-in users only) ─────────────────────────────────
+function YourPoolsSection({ pools }: { pools: PoolWithRole[] }) {
+  return (
+    <section className="bg-white border-b border-border py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h2 className="font-heading text-lg font-bold text-foreground mb-4">Your Pools</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {pools.map((pool) => (
+            <div
+              key={pool.slug}
+              className="rounded-xl border border-border bg-white p-4 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground truncate">{pool.name}</p>
+                <p className="text-sm text-muted capitalize mt-0.5">{pool.state.replace("_", " ")}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href={`/standings?pool=${pool.slug}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/10 transition-colors"
+                >
+                  <Trophy className="h-3.5 w-3.5" />
+                  Standings
+                </Link>
+                <Link
+                  href={`/picks?pool=${pool.slug}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-masters-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-masters-green-dark transition-colors"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  My Picks
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center gap-4 text-sm text-muted">
+          <Link href="/join" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
+            <Users className="h-3.5 w-3.5" />
+            Join another pool
+          </Link>
+          <span className="text-border">·</span>
+          <Link href="/pool/create" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
+            <Zap className="h-3.5 w-3.5" />
+            Create a pool
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
-export default function HomePage() {
+export default async function HomePage() {
+  const userId = await getAuthUserId();
+  const userPools = userId ? await getPoolsForUser(userId) : [];
+
   return (
     <main>
+      {userPools.length > 0 && <YourPoolsSection pools={userPools} />}
       <HeroSection />
       <SocialProofStrip />
       <HowItWorksSection />

@@ -168,16 +168,21 @@
 - [x] Entry fee formatted as `$100` on pool page stats card
 - [x] Venmo/PayPal deep link in pool config (set in Commissioner Dashboard → Settings)
 
-### Phase 8 — Live Scoring 🟡 MEDIUM
+### Phase 8 — Live Scoring ✅ (completed 2026-03-21)
 **Goal:** Real-time leaderboard during tournament (April 9–12)
-- [ ] Golf data API integration (ESPN API or SportsData.io)
-- [ ] `scores` table population via cron job (every 10 min during tournament)
-- [ ] `golfers` table seeded with tournament field
-- [ ] Pool standings calculation (sum of each member's 9 golfer scores)
-- [ ] Live leaderboard on `/pool/[slug]` — replaces "Participants" with "Standings"
-- [ ] Cut detection — mark cut golfers, apply penalty or zero scoring
-- [ ] Score display on pool page (ScoreBadge, movement arrows)
-- [ ] `getPoolState()` auto-transitions: `pre_lock` → `post_lock` → `in_progress` → `complete`
+- [x] `supabase/migrations/004_event_id.sql` — adds `event_id TEXT NOT NULL DEFAULT 'default'` to scores; updates unique constraint to `(golfer_id, event_id, round)` for multi-tournament support
+- [x] `src/lib/golf/types.ts` — `GolferScore` + `TournamentSnapshot` API-agnostic types
+- [x] `src/lib/golf/espn-adapter.ts` — ESPN unofficial scoreboard API adapter; parses competitor scores, CUT/WD status, per-round linescores; designed to be swappable
+- [x] `src/lib/golf/index.ts` — adapter entrypoint (GOLF_ADAPTER env var can switch providers)
+- [x] `src/lib/db/golfers.ts` — `upsertGolfers()` (bulk upsert by name), `getGolferNameToIdMap()` (fast name→id lookup for cron)
+- [x] `src/lib/db/scores.ts` — `getLeaderboardMap(eventId?)` returns `Map<lowerName, {total,position,is_cut,is_wd,rounds}>` for efficient scoring; `upsertScore` updated for event_id; `clearScoresForEvent()`
+- [x] `src/lib/scoring.ts` — `scoreEntry()` (pure fn: picks + leaderboard → entry total, best-N logic, counting flags); `getPoolStandings()` (async: fetches picks + leaderboard, ranks all pool members)
+- [x] `src/app/api/cron/scores/route.ts` — GET handler; verifies CRON_SECRET; requires GOLF_EVENT_ID; fetches snapshot, resolves golfer IDs, upserts all played rounds
+- [x] `src/app/api/admin/seed-golfers/route.ts` — POST /api/admin/seed-golfers; upserts 86 golfers from players.ts; optional clearScores+eventId params to reset scores between tournaments
+- [x] `src/components/admin/admin-shell.tsx` — Tournament Data card: Seed Golfers button, Fetch Scores Now button, Clear Scores + Reseed (with event ID input)
+- [x] `src/app/standings/page.tsx` — wired to `getPoolStandings()`; real scores replace hardcoded 0s; GOLF_EVENT_ID read from env
+- [x] `vercel.json` — cron schedule: `*/10 * * * *` → `/api/cron/scores`
+- **TODO (before tournament):** Run migration 004 in Supabase SQL Editor; set GOLF_EVENT_ID env var to ESPN Masters 2026 event ID (find at espn.com/golf when tournament starts); set CRON_SECRET in Vercel env; click "Seed Golfers" in admin panel; verify ESPN adapter response with curl command in adapter comments
 
 ### Phase 16 — Supabase RLS Policies ✅ (completed 2026-03-18 session 2)
 **Goal:** Lock down DB so anon/client-side can't read other users' picks
@@ -247,7 +252,7 @@
 ## Upcoming Session Priorities (next build session)
 
 ### Near-term (pre-Masters launch)
-1. **Phase 8** — Live scoring (golf data API, scores cron, pool standings calc — tournament April 9)
+1. **Phase 8 manual TODOs** — Run migration 004 in Supabase SQL Editor; set GOLF_EVENT_ID + CRON_SECRET in Vercel env; seed golfers via admin panel; verify ESPN API response shape
 2. **Commissioner settings** — Add `numScoring`, `maxEntriesPerUser`, `communityMessageTitle` fields to creation wizard + settings UI
 3. **Resend env vars** — Add `RESEND_API_KEY` + `EMAIL_FROM` to Vercel environment variables (manual step, required for emails to work in production)
 
@@ -291,12 +296,10 @@
 - [ ] **24B-2** `StandingsShell` on the standings page currently ignores the pool slug and shows demo/mock data even for authenticated pool members. Wire up `getPoolMembers(pool.id)` and pass real participants to `StandingsShell` (same pattern as `/pool/[slug]` page). The `showDemoToggle={!userId}` prop already exists — just needs real data fed in.
 - [ ] **24B-3** The "How scoring works" info banner on the standings page hardcodes "best 4 of 9" — replace with pool-config-driven values (`numScoring`, `numTiers`) when a pool slug is present.
 
-### 24C — Pool-Aware Home Page
+### 24C — Pool-Aware Home Page ✅ (completed 2026-03-21)
 
-**Goal:** Signed-in users with a pool shouldn't be stuck on the marketing home page — the logo link and the home page itself should provide pool-context navigation.
-
-- [ ] **24C-1** In `Navbar`, change the logo `href="/"` to `href={hasPool ? \`/standings?pool=${activeSlug}\` : "/"}` so clicking the "M" logo goes to the user's pool standings, not the marketing home.
-- [ ] **24C-2** `app/page.tsx` (home): if the user is signed in and has pools, show a "Your Pools" section above the marketing hero with quick-links to each pool (Standings, My Picks, Rules). Keep the full marketing content below for unauthenticated visitors.
+- [x] **24C-1** Logo `href` → `/standings?pool=${activeSlug}` when signed in with pool; falls back to `/`
+- [x] **24C-2** `app/page.tsx` — async server component; fetches user pools; renders `YourPoolsSection` (pool cards with Standings + My Picks links, Join/Create footer links) above the marketing hero when user has pools
 - [ ] **24C-3** Home page CTAs ("Create a Pool" / "Join a Pool") should already be visible to signed-in users since they may want to join another pool — keep these.
 
 ### 24D — Edge Cases to Handle

@@ -8,9 +8,10 @@ import { getPoolState, poolStateLabel, poolStateDotColor } from "@/lib/pool-stat
 import { auth } from "@clerk/nextjs/server";
 import { isPlatformAdmin } from "@/lib/auth";
 import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
-import { DEFAULT_RULES, type PayoutRow } from "@/lib/db/settings";
+import { DEFAULT_RULES, type PayoutRow, getCurrentEvent } from "@/lib/db/settings";
 import { redirect } from "next/navigation";
 import { ShareButton } from "@/components/ui/share-button";
+import { getPoolStandings } from "@/lib/scoring";
 
 // Tournament deadline: Thursday, April 9, 2026 5:00 AM MT (11:00 AM UTC)
 const PICKS_DEADLINE = new Date("2026-04-09T11:00:00Z");
@@ -79,15 +80,19 @@ export default async function StandingsPage({
   const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com";
   const poolShareUrl = pool ? `${APP_URL}/pool/${pool.slug}` : null;
 
-  // Participants for standings table (signed-in users)
+  // Participants for standings table — real scores when pool is present
   let participants: StandingsParticipant[] | undefined;
-  if (pool && userId) {
-    participants = members.map((m, i) => ({
-      rank: i + 1,
-      name: m.display_name ?? `Member ${i + 1}`,
-      score: 0,
-      movement: 0,
-      customTag: m.custom_tag ?? null,
+  if (pool && members.length > 0) {
+    // Resolve event ID: env var override → current event from DB → undefined (pre-tournament)
+    const currentEvent = await getCurrentEvent();
+    const eventId = process.env.GOLF_EVENT_ID ?? currentEvent?.eventId;
+    const standings = await getPoolStandings(pool.id, members, numScoring, eventId);
+    participants = standings.map((s) => ({
+      rank: s.rank,
+      name: s.displayName,
+      score: s.score ?? 0,
+      movement: s.movement,
+      customTag: s.customTag,
     }));
   }
 
