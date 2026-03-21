@@ -11,12 +11,30 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 export const metadata: Metadata = {
   title: "Masters Madness 2026 | Tournament Pool",
   description:
-    "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory.",
+    "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
+  metadataBase: new URL("https://mastersmadness.com"),
+  alternates: {
+    canonical: "https://mastersmadness.com",
+  },
   openGraph: {
     title: "Masters Madness 2026",
-    description: "The premier Masters Tournament fantasy golf pool.",
+    description:
+      "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
     type: "website",
     url: "https://mastersmadness.com",
+    siteName: "Masters Madness",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Masters Madness 2026 | Tournament Pool",
+    description:
+      "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
+    site: "@mastersmadness",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

@@ -3,7 +3,7 @@
 **Tournament:** April 9–12, 2026 · **Picks Lock:** April 9, 2026 @ 5:00 AM MT
 **Live URL:** https://mastersmadness.com
 **Supabase Project:** amrwikktihzaafqbiawi (us-west-2)
-**Last updated:** 2026-03-21 (session 4)
+**Last updated:** 2026-03-21 (session 5)
 
 ---
 
@@ -150,22 +150,23 @@
 - [x] **23C-2/3/4/5** Navbar fully restructured for all three user states; mobile drawer includes overflow with divider
 - [x] **23D-1** Landing page "Join a Pool" CTAs → `/join`
 
-### Phase 9 — Email Notifications 🔴 HIGH
-**Goal:** Transactional emails via Resend + React Email
-- [ ] Set up Resend account + API key (`RESEND_API_KEY` env var)
-- [ ] Pick confirmation email (sent on `POST /api/pools/[slug]/picks`)
-- [ ] Deadline reminder email (24h before lock — April 8)
-- [ ] Pool invite email (commissioner shares link → triggered on join)
-- [ ] Commissioner announcement email (blast to all pool members)
-- [ ] React Email templates with Masters branding
+### Phase 9 — Email Notifications ✅ (completed 2026-03-21)
+**Goal:** Transactional emails via Resend
+- [x] `resend` package installed; `RESEND_API_KEY` + `EMAIL_FROM` env vars
+- [x] `src/lib/email.ts` — HTML email templates + `sendPickConfirmation`, `sendPoolJoined`, `sendAnnouncement`, `sendDeadlineReminder`
+- [x] Pick confirmation email — fired on `POST /api/pools/[slug]/picks` (non-blocking)
+- [x] Pool joined welcome email — fired on `POST /api/pools/[slug]/join` (non-blocking)
+- [x] Commissioner announcement blast — `POST /api/pools/[slug]/announce` (Clerk-resolved member emails)
+- [x] Deadline reminder — `POST /api/admin/reminders` (admin-only, targets members without picks)
+- [x] "Email" tab added to commissioner dashboard — shows auto-email status + announcement composer
+- **TODO:** Verify `mastersmadness.com` domain in Resend dashboard; add `RESEND_API_KEY` to Vercel env vars
 
-### Phase 10 — Payments 🔴 HIGH
-**Goal:** Track payment status, show unpaid banner
-- [ ] `paid` column already exists on `pool_members` ✅
-- [ ] Commissioner can mark members as paid (in commissioner dashboard)
-- [ ] "Payment pending" banner for unpaid members on pool page
-- [ ] Venmo/PayPal deep link in pool config (commissioner sets at creation)
-- [ ] Entry fee display on pool page (from `pool.config.entryFee`)
+### Phase 10 — Payments ✅ (completed 2026-03-21)
+- [x] `paid` column on `pool_members` ✅
+- [x] Commissioner marks paid via toggle in Commissioner Dashboard → Members tab
+- [x] "Payment pending" amber banner on pool page — shown to unpaid members when `entryFee > 0`; includes "Pay Now" button linking to Venmo if set
+- [x] Entry fee formatted as `$100` on pool page stats card
+- [x] Venmo/PayPal deep link in pool config (set in Commissioner Dashboard → Settings)
 
 ### Phase 8 — Live Scoring 🟡 MEDIUM
 **Goal:** Real-time leaderboard during tournament (April 9–12)
@@ -192,14 +193,14 @@
 - [x] `getPoolsForUser(userId)` DB helper — joins `pool_members → pools`, returns all pools user belongs to
 - [x] `GET /api/me/pools` route — returns user's pools, 401 if unauthenticated
 
-### Phase 21 — www Redirect 🟢 LOW
-- [ ] Redirect `www.mastersmadness.com` → `mastersmadness.com` (canonical)
-- [ ] Set up in Vercel project settings
+### Phase 21 — www Redirect ✅ (completed 2026-03-21)
+- [x] `next.config.ts` redirect: `www.mastersmadness.com/:path*` → `mastersmadness.com/:path*` (permanent 308)
 
-### Phase 22 — SEO & OG Tags 🟢 LOW
-- [ ] Per-pool OG image (pool name, member count, prize pool)
-- [ ] `robots.txt`, `sitemap.xml`
-- [ ] Twitter card meta tags
+### Phase 22 — SEO & OG Tags ✅ (completed 2026-03-21)
+- [x] `src/app/robots.ts` — disallows `/admin/` and `/api/`, points to sitemap
+- [x] `src/app/sitemap.ts` — static routes + all public pool pages (fetched from Supabase)
+- [x] Root layout — `metadataBase`, Twitter card, canonical URL, `robots` metadata
+- [x] `/pool/[slug]` — `generateMetadata` with per-pool title, description (member count + prize pool), canonical URL, OG + Twitter tags
 
 ---
 
@@ -229,11 +230,19 @@
 
 ## Upcoming Session Priorities (next build session)
 
+### Near-term (pre-Masters launch)
 1. **Phase 9** — Email (Resend setup + pick confirmation + deadline reminder)
 2. **Phase 10** — Payments (paid badge, Venmo link, unpaid banner on pool page)
 3. **Phase 8** — Live scoring stub (seed golfers, wire `getPoolState()` auto-transition)
 4. **Commissioner settings** — Add `numScoring`, `maxEntriesPerUser`, `communityMessageTitle` fields to creation wizard + settings UI
 5. **Admin rules editor** — Add `communityMessageTitle` field to admin panel rules editor
+
+### Post-Masters growth (Phases 28–32)
+6. **Phase 28** — Tournament data model (`tournaments` table, link pools, data-driven pool state)
+7. **Phase 29** — "Continue Playing" commissioner flow + post-tournament email campaign
+8. **Phase 30** — Multi-tournament pick cycles (scoped picks, golfer field per tournament)
+9. **Phase 31** — Season-long scoring & aggregate leaderboard
+10. **Phase 32** — Full PGA Tour season mode (premium / future)
 
 ---
 
@@ -382,3 +391,235 @@ Place these **below** the community message, **above** the How It Works / Simula
 
 ### isActive() link highlighting in Navbar
 - Current `isActive()` checks pathname only. `/standings?pool=x` and `/standings?pool=y` both "match" `/standings`. This means both pools' Standings links appear active simultaneously. Fix: include pool slug in the active check.
+
+---
+
+## Phase 28 — Tournament Data Model 🟡 MEDIUM
+
+**Goal:** Lift the concept of a "tournament" out of hardcoded constants in `pool-state.ts` and make it a first-class DB entity. This is the foundational change that unlocks everything in Phases 29–32.
+
+### The core problem today
+`getPoolState()` in `pool-state.ts` uses four hardcoded `Date` constants — the picks deadline, tournament start, and tournament end for the 2026 Masters. There is no way for a pool to point at a different tournament, no way to add PGA Championship support, and no way for a commissioner to configure which tournament their pool is running on. Every phase in multi-tournament support depends on this being data-driven.
+
+### Design principles (Norman + Krug)
+- **Affordance (Norman):** Each tournament in the system should clearly signal what actions are available — commissioners should never have to guess what "configuring a tournament" means.
+- **Visibility (Norman):** Pool state (locked, live, complete) should be derived from the tournament's dates, not hidden in code. If a commissioner can see the tournament dates, they can predict the pool's behavior.
+- **Don't Make Me Think (Krug):** A commissioner setting up a pool for the PGA Championship shouldn't have to know anything about the underlying data model — just pick the tournament from a list and everything else follows.
+
+### 28A — `tournaments` table
+```sql
+create table tournaments (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,                       -- "The Masters 2026"
+  short_name   text not null,                       -- "Masters"
+  slug         text unique not null,                -- "masters-2026"
+  tour         text not null default 'pga',         -- 'pga', 'liv', 'dp_world'
+  season       int not null,                        -- 2026
+  picks_lock   timestamptz not null,                -- deadline for picks submissions
+  starts_at    timestamptz not null,                -- first tee time
+  ends_at      timestamptz not null,                -- last putt on Sunday
+  course       text,                                -- "Augusta National"
+  city         text,                                -- "Augusta, GA"
+  logo_url     text,                                -- tournament logo/badge
+  is_major     boolean not null default false,
+  created_at   timestamptz default now()
+);
+```
+
+- [ ] **28A-1** Write migration `004_tournaments.sql` — create `tournaments` table with the schema above.
+- [ ] **28A-2** Seed the Masters 2026 tournament row: `slug = 'masters-2026'`, picks_lock = `2026-04-09T11:00:00Z`, starts_at = `2026-04-09T13:00:00Z`, ends_at = `2026-04-12T23:59:00Z`.
+- [ ] **28A-3** Seed the remaining 2026 Major rows (PGA Championship, US Open, The Open Championship) with correct dates.
+
+### 28B — Link pools to tournaments
+- [ ] **28B-1** Add `tournament_id uuid references tournaments(id)` column to the `pools` table (nullable — existing pools stay valid; we backfill Masters 2026 via migration).
+- [ ] **28B-2** Backfill existing pools: `UPDATE pools SET tournament_id = (SELECT id FROM tournaments WHERE slug = 'masters-2026')`.
+- [ ] **28B-3** Add DB helper `getTournamentForPool(poolId)` → returns the `Tournament` row or null.
+- [ ] **28B-4** Add `getTournamentBySlug(slug)` for use in server components.
+
+### 28C — Data-driven `getPoolState()`
+Replace the hardcoded constants with tournament-aware state derivation:
+
+```ts
+// Before (hardcoded):
+export function getPoolState(now = new Date()): PoolState { ... }
+
+// After (tournament-aware):
+export function getPoolStateForTournament(tournament: Tournament, now = new Date()): PoolState {
+  if (now < tournament.picks_lock) return "pre_lock";
+  if (now < tournament.starts_at) return "post_lock";
+  if (now <= tournament.ends_at) return "in_progress";
+  return "complete";
+}
+```
+
+- [ ] **28C-1** Add `Tournament` TypeScript type to `src/types/index.ts`.
+- [ ] **28C-2** Add `getPoolStateForTournament(tournament, now?)` to `pool-state.ts`. Keep the existing `getPoolState()` as a backward-compat shim that uses Masters 2026 dates until callers are migrated.
+- [ ] **28C-3** Update `standings/page.tsx`, `rules/page.tsx`, `picks/page.tsx` to fetch the pool's tournament and call `getPoolStateForTournament()` instead of `getPoolState()`.
+
+### 28D — Tournament picker in pool creation wizard
+- [ ] **28D-1** In the pool creation wizard (Step 2), replace the static "2026 Masters" text with a tournament selector. Show upcoming tournaments sorted by `starts_at`. Display tournament name, course, dates.
+- [ ] **28D-2** Default selection: the next tournament that hasn't started yet (by `starts_at`). If none, the most recent one.
+- [ ] **28D-3** Store `tournament_id` in the pool config when saving via `POST /api/pools`.
+- [ ] **28D-4** Commissioner can later change the tournament in commissioner settings → Settings tab (before picks lock).
+
+---
+
+## Phase 29 — Post-Tournament "Continue Playing" Flow 🟡 MEDIUM
+
+**Goal:** After the Masters ends (pool state = `complete`), give commissioners a clear, zero-friction path to continue the pool for the next Major or the full season. This is the primary growth lever post-Masters.
+
+### Design principles (Norman + Krug)
+- **Signifier (Norman):** The "Continue Playing" CTA must appear naturally at the moment commissioners realize the tournament ended — on the standings page, in the post-tournament email. It shouldn't require them to navigate somewhere.
+- **Feedback (Norman):** After a commissioner starts a new tournament cycle, all participants should receive an email within seconds confirming the pool is continuing.
+- **Three-click rule (Krug):** Commissioner sees standings → clicks "Continue Playing" → picks a tournament → done. Three clicks, no dead ends.
+- **Don't Make Me Think (Krug):** The button label must be instantly obvious. "Continue Playing" or "Set Up Next Tournament" — not "Configure Pool Tournament ID."
+
+### 29A — Post-complete banner on standings page
+When `poolState === "complete"` and `isCommissioner`:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🏆  The Masters 2026 is in the books!                      │
+│  Ready to keep playing? Set up your pool for the next       │
+│  Major or run the full season.                              │
+│                                                             │
+│  [Continue Playing →]    [View Final Standings]             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+- [ ] **29A-1** Add `<ContinuePlayingBanner>` component — only rendered when `poolState === "complete"` AND `isCommissioner`. Lives in `standings/page.tsx` above the standings table.
+- [ ] **29A-2** "Continue Playing" button → opens modal (29B) or navigates to `/pool/[slug]/continue`.
+- [ ] **29A-3** "View Final Standings" scrolls down / dismisses banner (localStorage key to suppress after dismissal).
+- [ ] **29A-4** For non-commissioner pool members who visit a complete pool, show a read-only congrats banner: "🏆 Tournament Complete · [Winner name] wins [Prize]!" No CTA. Encourages commissioner to set up next tournament.
+
+### 29B — "Continue Playing" setup modal/page
+A minimal 3-step wizard accessible from the standings banner:
+
+**Step 1 — Pick your next tournament**
+- List of upcoming tournaments (from `tournaments` table) not yet associated with this pool
+- Show name, dates, course
+- Pre-select the next chronologically upcoming Major
+
+**Step 2 — Choose a mode**
+- [ ] **Season Majors** (4 tournaments, cumulative scoring — recommended) — "Play through all 4 Majors in 2026. New picks for each tournament; cumulative season leaderboard."
+- [ ] **This tournament only** — "Set up your pool for just the PGA Championship 2026. Fresh picks, fresh start."
+
+**Step 3 — Confirm & notify**
+- Summary: pool name, tournament, mode
+- "Notify Participants" checkbox (default on) — triggers email blast
+- [Start Next Tournament] button
+
+- [ ] **29B-1** Build `ContinueWizard` component (3-step) — follows same visual pattern as pool creation wizard.
+- [ ] **29B-2** On save: `POST /api/pools/[slug]/continue` — creates a new `pool_tournament` record linking this pool to the next tournament, optionally transitions the pool to `pre_lock` for the new cycle.
+- [ ] **29B-3** If "Notify Participants" is checked: trigger email to all pool members via Resend (depends on Phase 9).
+
+### 29C — Post-tournament email campaign
+Separate from the in-app flow, an automated email 24h after tournament completion:
+
+**To commissioners:**
+> Subject: "🏆 The Masters is over — keep your pool going?"
+> Body: Short congratulations (winner name, their prize). One clear CTA: "Continue Playing →" (deep link to `/pool/[slug]/continue`).
+
+**To participants:**
+> Subject: "How'd you do at the Masters? 🏌️"
+> Body: Their final rank + score. Pool winner + prize. One CTA: "View Final Standings". Teaser: "Your pool might be continuing for the PGA Championship — stay tuned!"
+
+- [ ] **29C-1** Email templates (React Email) for commissioner + participant post-tournament summary.
+- [ ] **29C-2** Cron job or webhook trigger: fires 24h after `tournament.ends_at`. Uses pool's `tournament_id` to know which tournament just completed.
+- [ ] **29C-3** Winner name + prize included in email (requires live scoring from Phase 8 — stub with "Check standings" link if scoring not ready).
+
+---
+
+## Phase 30 — Multi-Tournament Pick Cycles 🟡 MEDIUM
+
+**Goal:** When a pool spans multiple tournaments, each tournament has its own independent pick cycle — its own picks deadline, its own set of golfer selections per participant, its own lock window.
+
+### The key insight
+In a multi-tournament season, picks are not global — they're per-tournament. A participant picks a lineup for the Masters, then a fresh lineup for the PGA Championship. Their picks from April shouldn't override or conflict with their picks from May.
+
+### 30A — Tournament-scoped picks
+- [ ] **30A-1** Add `tournament_id uuid references tournaments(id)` column to the `picks` table. Existing picks get the Masters 2026 ID via backfill migration.
+- [ ] **30A-2** Update `GET/POST /api/pools/[slug]/picks` to scope queries by `tournament_id`. The active tournament is derived from the pool's current `tournament_id` (or a `?tournament=` query param for historical lookup).
+- [ ] **30A-3** DB helper `getPicksForTournament(poolId, userId, tournamentId)` — used by picks page + scoring.
+- [ ] **30A-4** The picks page UI should show which tournament it's collecting picks for ("Making picks for: PGA Championship 2026"). No ambiguity for the user.
+
+### 30B — Golfer field per tournament
+- [ ] **30B-1** The current `players.ts` file has the Masters 2026 field. For multi-tournament support, we need tournament-specific player fields (the PGA Championship has a different field, different odds).
+- [ ] **30B-2** Add a `golfers` table to Supabase with `tournament_id` — seeded with the full field + odds for each tournament. The picks UI reads from the active tournament's golfer list.
+- [ ] **30B-3** Tier assignments become per-tournament: `getTierPlayers(tierNum, playersPerTier, tournamentId)` reads from the `golfers` table for that tournament's field.
+
+### 30C — Picks navigation UI
+When a pool has completed multiple tournaments, the standings/picks/analytics pages should allow historical navigation:
+
+```
+[Masters 2026 ✓]  [PGA Champ. (Active)]  [US Open (Upcoming)]
+```
+
+- [ ] **30C-1** `TournamentTabBar` component — horizontal tabs/pills showing each tournament the pool has run. Completed tournaments show a checkmark, active shows a dot, upcoming shows a clock.
+- [ ] **30C-2** Clicking a past tournament tab loads that tournament's picks (read-only) and standings.
+- [ ] **30C-3** The `?tournament=` query param encodes the active tournament context, just like `?pool=` encodes pool context.
+
+---
+
+## Phase 31 — Season-Long Scoring & Aggregate Leaderboard 🟡 MEDIUM
+
+**Goal:** When a pool runs multiple tournaments, provide a cumulative season leaderboard — a single view showing who's winning across all tournaments combined.
+
+### Scoring model
+Each participant has a score per tournament (sum of their 4 best golfer scores at that event). The season score is the sum of their scores across all tournaments they've participated in. Lower is better (strokes-to-par).
+
+### 31A — Season leaderboard data
+- [ ] **31A-1** DB view or function `season_standings(pool_id)` — joins picks + scores across all of a pool's tournaments; returns `(participant_id, display_name, [per-tournament score], total_season_score)`.
+- [ ] **31A-2** `GET /api/pools/[slug]/season-standings` — returns ranked season standings. Cached / invalidated when new tournament scores are ingested.
+
+### 31B — Season standings UI
+- [ ] **31B-1** Add a "Season" tab to the standings page (alongside individual tournament tabs from Phase 30C).
+- [ ] **31B-2** Season standings table: rank, name, per-tournament score columns, season total. Columns for incomplete tournaments show "—" or "TBD".
+- [ ] **31B-3** Movement arrows on season standings reflect position change since last tournament completed.
+
+### 31C — Season payouts
+- [ ] **31C-1** Commissioner can configure season payouts separately from per-tournament payouts in the pool creation wizard / commissioner settings.
+- [ ] **31C-2** Season payouts card on the standings page shows season payout breakdown (1st, 2nd, 3rd across all Majors).
+
+---
+
+## Phase 32 — Full PGA Tour Season Mode (Future / Premium) 🟢 LOW
+
+**Goal:** Allow pools to run for any PGA Tour event — not just Majors — and offer a "full 2026 season" mode with a season-long leaderboard across 40+ events. This is a premium/growth feature, not needed for the 2026 Masters launch.
+
+### Design principles (Krug)
+- **Progressive disclosure:** Don't surface this complexity to commissioners until they've successfully run at least one tournament. Show it as "Unlock the full season →" after the first tournament completes.
+- **Scannability:** When 40 events are listed, the UI needs grouping (Majors, Signature Events, Regular Events) and smart defaults (show next 4 events, collapse the rest).
+
+### 32A — PGA Tour event catalog
+- [ ] **32A-1** Seed `tournaments` table with the full 2026 PGA Tour schedule (FedEx Cup events). Source: PGA Tour official schedule.
+- [ ] **32A-2** Add `event_type` enum: `major`, `signature`, `elevated`, `regular`, `playoff`. Used to filter and group events in the UI.
+- [ ] **32A-3** Add `fedex_cup_points` and `purse_usd` columns for display purposes (shows the prestige of each event).
+
+### 32B — "Full Season" pool mode
+- [ ] **32B-1** New pool config option: `season_type: "single" | "majors" | "full_season"`.
+  - `single` — current behavior (one tournament, done).
+  - `majors` — 4 Majors only, cumulative scoring.
+  - `full_season` — all tour events, cumulative FedEx Cup–style scoring.
+- [ ] **32B-2** Full season pools: participants make fresh picks before each event's lock window.
+- [ ] **32B-3** Season-long leaderboard (Phase 31) powers the full-season standings.
+
+### 32C — In-app growth surface
+- [ ] **32C-1** After Masters 2026 completes, show commissioners a "Your season doesn't have to end here" section with three cards: "Next Major (PGA Champ)", "All 4 Majors", "Full PGA Tour Season". Each card briefly explains the format + a CTA.
+- [ ] **32C-2** UX copy principles (Krug): label actions by outcome, not configuration — "Play the PGA Championship" not "Add tournament to pool". "Play all 4 Majors" not "Enable multi-tournament mode."
+- [ ] **32C-3** "Full Season" mode should be the upsell / premium tier if Masters Madness ever monetizes. Gate behind a "Pro" flag in pool config if needed.
+
+---
+
+## Multi-Tournament Architecture Decisions
+
+| Concern | Decision |
+|---------|----------|
+| Tournament identity | `tournaments` table in Supabase; each row is one PGA Tour event |
+| Pool ↔ Tournament | `pools.tournament_id` for single-tournament; `pool_tournaments` junction table for multi-tournament season mode |
+| Pool state source of truth | Derived from `tournament.picks_lock / starts_at / ends_at`, not hardcoded dates |
+| Picks scoping | `picks.tournament_id` FK — all pick queries filter by active tournament |
+| Golfer field | `golfers` table with `tournament_id` FK; replaces static `players.ts` for multi-tournament |
+| Season scoring | DB view / function aggregating per-tournament scores; not computed client-side |
+| "Continue Playing" entry point | Post-complete banner on standings page + post-tournament email (24h delay) |
+| Commissioner UX copy | Action-labeled CTAs ("Play the PGA Championship") not config-labeled ("Add tournament") — Krug principle |

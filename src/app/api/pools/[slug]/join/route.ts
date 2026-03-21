@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getPoolBySlug, isPoolMember, addPoolMember } from "@/lib/db/pools";
 import { getAuthUserId } from "@/lib/auth";
+import { sendPoolJoined } from "@/lib/email";
 
 export async function POST(
   _request: Request,
@@ -33,6 +34,24 @@ export async function POST(
   const ok = await addPoolMember(pool.id, userId, "player", displayName ?? undefined);
   if (!ok) {
     return NextResponse.json({ error: "Failed to join pool" }, { status: 500 });
+  }
+
+  // Send welcome email (non-blocking)
+  try {
+    const email = user?.emailAddresses[0]?.emailAddress;
+    const config = pool.config as Record<string, unknown>;
+    if (email) {
+      await sendPoolJoined({
+        to: email,
+        displayName: displayName ?? "there",
+        poolName: pool.name,
+        poolSlug: pool.slug,
+        entryFee: typeof config.entryFee === "number" ? config.entryFee : null,
+        venmoLink: typeof config.venmoLink === "string" ? config.venmoLink : null,
+      });
+    }
+  } catch {
+    // Email failure is non-fatal
   }
 
   return NextResponse.json({ success: true });

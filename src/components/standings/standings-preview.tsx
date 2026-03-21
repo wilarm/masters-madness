@@ -255,13 +255,7 @@ export function StandingsPreview({ poolState = "pre_lock", showPicks = false, pa
         </div>
       )}
 
-      {/* Fullscreen backdrop */}
-      {fullscreen && (
-        <div
-          className="fixed inset-0 -z-10 bg-black/50"
-          onClick={() => setFullscreen(false)}
-        />
-      )}
+      {/* Fullscreen: close on Escape key is handled natively; no dark overlay needed */}
     </div>
   );
 }

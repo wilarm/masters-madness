@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -24,6 +25,53 @@ import { getUserPoolRole } from "@/lib/auth";
 import { getPoolState, picksVisible } from "@/lib/pool-state";
 import { JoinPoolButton } from "@/components/pool/join-pool-button";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const pool = await getPoolBySlug(slug);
+  if (!pool) return {};
+
+  const config = pool.config as Record<string, unknown>;
+  const entryFeeNum = config.entryFee ? Number(config.entryFee) : 0;
+  const members = await getPoolMembers(pool.id);
+  const prizePoolOverride = config.prizePool as string | undefined;
+  const autoPrizePool = entryFeeNum > 0
+    ? `$${(members.length * entryFeeNum).toLocaleString()}`
+    : null;
+  const prizePool = prizePoolOverride || autoPrizePool;
+
+  const description = [
+    `${members.length} ${members.length === 1 ? "participant" : "participants"}`,
+    prizePool ? `${prizePool} prize pool` : null,
+    "Masters Tournament 2026",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const url = `https://mastersmadness.com/pool/${slug}`;
+
+  return {
+    title: `${pool.name} | Masters Madness 2026`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: pool.name,
+      description,
+      url,
+      type: "website",
+      siteName: "Masters Madness",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: pool.name,
+      description,
+    },
+  };
+}
+
 export default async function PoolPage({
   params,
   searchParams,
@@ -49,6 +97,8 @@ export default async function PoolPage({
   const isCommissioner = userRole === "commissioner";
   const isMember = !!userRole;
   const hasSubmittedPicks = userPicks.length > 0;
+  const userMember = userId ? members.find((m) => m.user_id === userId) : null;
+  const isPaid = userMember?.paid ?? true; // default true so banner doesn't show without entry fee
   const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://mastersmadness.com"}/pool/${slug}`;
   const prizePoolOverride = pool.config?.prizePool as string | undefined;
   const entryFee = pool.config?.entryFee as string | number | undefined;
@@ -254,6 +304,36 @@ export default async function PoolPage({
           </div>
         )}
 
+        {/* Payment pending banner */}
+        {isMember && !isPaid && entryFeeNum > 0 && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
+              <span className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 border border-amber-300">
+                <DollarSign className="h-4 w-4 text-amber-600" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-amber-900">
+                  Entry fee payment pending — ${entryFeeNum}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Your spot is reserved. Send your entry fee to the commissioner to confirm.
+                </p>
+              </div>
+            </div>
+            {typeof pool.config?.venmoLink === "string" && pool.config.venmoLink && (
+              <a
+                href={pool.config.venmoLink as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition-colors"
+              >
+                Pay Now
+                <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
+        )}
+
         {/* Pool Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="text-center">
@@ -286,7 +366,7 @@ export default async function PoolPage({
             </div>
             <p className="text-sm text-muted font-semibold">Entry Fee</p>
             <p className="font-heading text-2xl font-bold text-foreground mt-1">
-              {entryFee ?? "Free"}
+              {entryFeeNum > 0 ? `$${entryFeeNum}` : "Free"}
             </p>
             <p className="text-xs text-muted font-medium mt-1">per entry</p>
           </Card>

@@ -16,6 +16,9 @@ import {
   Save,
   ExternalLink,
   DollarSign,
+  Mail,
+  Send,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +84,13 @@ export function CommissionerDashboard({
   );
   const [customSaved, setCustomSaved] = useState(false);
   const [customLoading, setCustomLoading] = useState(false);
+
+  // Announcement state
+  const [announceSubject, setAnnounceSubject] = useState("");
+  const [announceMessage, setAnnounceMessage] = useState("");
+  const [announceLoading, setAnnounceLoading] = useState(false);
+  const [announceResult, setAnnounceResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [announceError, setAnnounceError] = useState<string | null>(null);
 
   // Picks map
   const picksByUser = picks.reduce<Record<string, Pick[]>>((acc, pick) => {
@@ -178,6 +188,32 @@ export function CommissionerDashboard({
     startTransition(() => router.refresh());
   }
 
+  async function sendAnnouncement() {
+    if (!announceSubject.trim() || !announceMessage.trim()) return;
+    setAnnounceLoading(true);
+    setAnnounceResult(null);
+    setAnnounceError(null);
+    try {
+      const res = await fetch(`/api/pools/${pool.slug}/announce`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: announceSubject, message: announceMessage }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAnnounceError(data.error ?? "Failed to send emails");
+      } else {
+        setAnnounceResult(data);
+        setAnnounceSubject("");
+        setAnnounceMessage("");
+      }
+    } catch {
+      setAnnounceError("Network error — please try again.");
+    } finally {
+      setAnnounceLoading(false);
+    }
+  }
+
   return (
     <div>
       {/* Header */}
@@ -263,6 +299,13 @@ export function CommissionerDashboard({
             >
               <Tag className="h-4 w-4" />
               Customize
+            </TabsTrigger>
+            <TabsTrigger
+              value="email"
+              className="gap-1.5 px-4 py-2.5 rounded-none text-sm"
+            >
+              <Mail className="h-4 w-4" />
+              Email
             </TabsTrigger>
           </TabsList>
 
@@ -739,6 +782,107 @@ export function CommissionerDashboard({
                 ))}
               </div>
             </Card>
+          </TabsContent>
+
+          {/* ── Email Tab ── */}
+          <TabsContent value="email">
+            <div className="space-y-4">
+              {/* Transactional info */}
+              <Card>
+                <CardTitle className="mb-2">Automatic Emails</CardTitle>
+                <p className="text-sm text-muted mb-4">
+                  These emails are sent automatically — no action needed.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    {
+                      icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+                      label: "Pick confirmation",
+                      desc: "Sent to each member when they submit their picks.",
+                    },
+                    {
+                      icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+                      label: "Welcome / pool joined",
+                      desc: "Sent when a new member joins your pool.",
+                    },
+                  ].map(({ icon, label, desc }) => (
+                    <div key={label} className="flex items-start gap-3">
+                      <span className="mt-0.5">{icon}</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{label}</p>
+                        <p className="text-xs text-muted">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Announcement composer */}
+              <Card>
+                <CardTitle className="mb-1">Send Announcement</CardTitle>
+                <p className="text-sm text-muted mb-5">
+                  Blast a message to all {members.length} pool member{members.length !== 1 ? "s" : ""}.
+                </p>
+
+                {announceResult && (
+                  <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-sm text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                    Sent to {announceResult.sent} member{announceResult.sent !== 1 ? "s" : ""}
+                    {announceResult.failed > 0 && ` (${announceResult.failed} failed)`}.
+                  </div>
+                )}
+
+                {announceError && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2 text-sm text-red-700">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {announceError}
+                  </div>
+                )}
+
+                <div className="space-y-4 max-w-lg">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="announce-subject">Subject</Label>
+                    <input
+                      id="announce-subject"
+                      value={announceSubject}
+                      onChange={(e) => setAnnounceSubject(e.target.value)}
+                      placeholder="Picks deadline is tomorrow!"
+                      className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-masters-green/30 focus:border-masters-green"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="announce-message">Message</Label>
+                      <span className="text-xs text-muted">{announceMessage.length}/1000</span>
+                    </div>
+                    <textarea
+                      id="announce-message"
+                      value={announceMessage}
+                      onChange={(e) => setAnnounceMessage(e.target.value.slice(0, 1000))}
+                      placeholder="Hey everyone! Just a quick reminder to get your picks in before the deadline. Good luck to all!"
+                      rows={5}
+                      className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-masters-green/30 focus:border-masters-green resize-none"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={sendAnnouncement}
+                    disabled={announceLoading || !announceSubject.trim() || !announceMessage.trim()}
+                    variant="default"
+                  >
+                    {announceLoading ? (
+                      "Sending…"
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Send to {members.length} member{members.length !== 1 ? "s" : ""}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

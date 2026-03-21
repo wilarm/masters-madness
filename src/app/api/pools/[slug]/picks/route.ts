@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { getPoolBySlug, isPoolMember } from "@/lib/db/pools";
 import { upsertPicks, getPicksByUser } from "@/lib/db/picks";
 import { getPoolState } from "@/lib/pool-state";
 import { getAuthUserId, isPlatformAdmin, isPoolCommissioner } from "@/lib/auth";
+import { sendPickConfirmation } from "@/lib/email";
 
 export async function GET(
   _request: Request,
@@ -70,6 +72,27 @@ export async function POST(
 
   if (!success) {
     return NextResponse.json({ error: "Failed to save picks" }, { status: 500 });
+  }
+
+  // Send confirmation email (non-blocking — don't fail the request if email fails)
+  try {
+    const user = await currentUser();
+    const email = user?.emailAddresses[0]?.emailAddress;
+    const displayName =
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+      user?.emailAddresses[0]?.emailAddress ||
+      "there";
+    if (email) {
+      await sendPickConfirmation({
+        to: email,
+        displayName,
+        poolName: pool.name,
+        poolSlug: pool.slug,
+        picks: golfer_picks as Record<string, string>,
+      });
+    }
+  } catch {
+    // Email failure is non-fatal
   }
 
   return NextResponse.json({ success: true });
