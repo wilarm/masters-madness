@@ -24,6 +24,14 @@ export const metadata: Metadata = {
     url: "https://mastersmadness.com",
     siteName: "Masters Madness",
     locale: "en_US",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Masters Madness 2026 — Masters Tournament Fantasy Pool · April 9–12, 2026",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -31,6 +39,7 @@ export const metadata: Metadata = {
     description:
       "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
     site: "@mastersmadness",
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
