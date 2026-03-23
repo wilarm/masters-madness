@@ -23,6 +23,7 @@ import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { DEFAULT_RULES, type PayoutRow, getCurrentEvent } from "@/lib/db/settings";
 import { redirect } from "next/navigation";
 import { ShareButton } from "@/components/ui/share-button";
+import { LeavePoolButton } from "@/components/pool/leave-pool-button";
 import { getPoolStandings } from "@/lib/scoring";
 
 // Tournament deadline: Thursday, April 9, 2026 5:00 AM MT (11:00 AM UTC)
@@ -60,6 +61,12 @@ export default async function StandingsPage({
 
   // Always fetch members when pool is present (needed for count + standings)
   const members = pool ? await getPoolMembers(pool.id) : [];
+
+  // Current user's membership in this pool
+  const currentMember = userId && pool
+    ? members.find((m) => m.user_id === userId) ?? null
+    : null;
+  const isPoolCommish = currentMember?.role === "commissioner";
 
   // Payouts: pool config overrides default
   const payouts: PayoutRow[] =
@@ -271,7 +278,7 @@ export default async function StandingsPage({
               />
             </div>
 
-            {/* Invite button + rules link */}
+            {/* Invite button + rules link + leave */}
             <div className="flex items-center gap-3 flex-wrap">
               {poolShareUrl && (
                 <ShareButton
@@ -288,6 +295,14 @@ export default async function StandingsPage({
               >
                 View full rules →
               </a>
+              {/* Leave pool — only for members who are not the commissioner */}
+              {currentMember && !isPoolCommish && userId && (
+                <LeavePoolButton
+                  poolSlug={pool.slug}
+                  poolName={pool.name}
+                  userId={userId}
+                />
+              )}
             </div>
           </div>
         )}
