@@ -9,17 +9,17 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Masters Madness 2026 | Tournament Pool",
+  title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
   description:
-    "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
+    "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
   metadataBase: new URL("https://mastersmadness.com"),
   alternates: {
     canonical: "https://mastersmadness.com",
   },
   openGraph: {
-    title: "Masters Madness 2026",
+    title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
     description:
-      "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
+      "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
     type: "website",
     url: "https://mastersmadness.com",
     siteName: "Masters Madness",
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Masters Madness 2026 | Tournament Pool",
+    title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
     description:
-      "The premier Masters Tournament fantasy golf pool. Pick your golfers, track live scores, and compete for glory at Augusta National.",
+      "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
     site: "@mastersmadness",
     images: ["/thumbnail.png"],
   },

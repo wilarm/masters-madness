@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Trophy,
@@ -20,6 +21,22 @@ import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
 import { getAuthUserId } from "@/lib/auth";
 import { getPoolsForUser } from "@/lib/db/pools";
 import type { PoolWithRole } from "@/lib/db/pools";
+
+export const metadata: Metadata = {
+  title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
+  description:
+    "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
+  openGraph: {
+    title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
+    description:
+      "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
+  },
+  twitter: {
+    title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
+    description:
+      "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
+  },
+};
 
 // ─── Hero Section ──────────────────────────────────────────────────────────────
 function HeroSection() {
@@ -878,7 +895,7 @@ function FoundingMembersSection() {
               <br />
               Free Pools Forever.
             </h2>
-            <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-8">
+            <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-8" data-nosnippet>
               Masters Madness is 100% free during our 2026 beta. When we
               eventually start charging (~$5 per pool), everyone who signs up{" "}
               <strong className="text-foreground">before April 9, 2026</strong>{" "}
