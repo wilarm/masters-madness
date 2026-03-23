@@ -13,7 +13,10 @@ export const metadata: Metadata = {
   },
 };
 import { TrendingUp, TrendingDown, BookOpen } from "lucide-react";
-import { PLAYERS, calculateTrend } from "@/data/players";
+import { PLAYERS } from "@/data/players";
+import { getAllGolfers, oddsMovement } from "@/lib/db/golfers";
+
+export const revalidate = 300; // revalidate every 5 minutes
 
 export default async function ResearchPage({
   searchParams,
@@ -22,13 +25,21 @@ export default async function ResearchPage({
 }) {
   const { player } = await searchParams;
 
-  const trendingUp = PLAYERS.filter((p) => calculateTrend(p) > 0)
-    .sort((a, b) => calculateTrend(b) - calculateTrend(a))
+  // DB golfers drive trends (prev_odds_rank vs odds_rank)
+  const dbGolfers = await getAllGolfers();
+
+  const trendingUp = dbGolfers
+    .filter((g) => oddsMovement(g) > 0)
+    .sort((a, b) => oddsMovement(b) - oddsMovement(a))
     .slice(0, 3);
 
-  const trendingDown = PLAYERS.filter((p) => calculateTrend(p) < 0)
-    .sort((a, b) => calculateTrend(a) - calculateTrend(b))
+  const trendingDown = dbGolfers
+    .filter((g) => oddsMovement(g) < 0)
+    .sort((a, b) => oddsMovement(a) - oddsMovement(b))
     .slice(0, 3);
+
+  // Country flag lookup from static player data
+  const flagByName = new Map(PLAYERS.map((p) => [p.name, p.country]));
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -53,19 +64,22 @@ export default async function ResearchPage({
             </h2>
           </div>
           <div className="space-y-2">
-            {trendingUp.map((player) => (
+            {trendingUp.length === 0 ? (
+              <p className="text-sm text-muted">No movement yet — updates when odds change.</p>
+            ) : trendingUp.map((g) => (
               <div
-                key={player.name}
+                key={g.name}
                 className="flex items-center justify-between rounded-lg bg-success/5 border border-success/10 p-3"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{player.country}</span>
-                  <span className="font-medium text-foreground">
-                    {player.name}
-                  </span>
+                  <span className="text-lg">{flagByName.get(g.name) ?? "🌍"}</span>
+                  <div>
+                    <span className="font-medium text-foreground">{g.name}</span>
+                    <span className="ml-2 text-xs text-muted font-mono">{g.prev_odds} → {g.odds}</span>
+                  </div>
                 </div>
                 <span className="text-success font-mono font-bold text-sm">
-                  ▲ {calculateTrend(player)} spots
+                  ▲ {oddsMovement(g)} spots
                 </span>
               </div>
             ))}
@@ -80,19 +94,22 @@ export default async function ResearchPage({
             </h2>
           </div>
           <div className="space-y-2">
-            {trendingDown.map((player) => (
+            {trendingDown.length === 0 ? (
+              <p className="text-sm text-muted">No movement yet — updates when odds change.</p>
+            ) : trendingDown.map((g) => (
               <div
-                key={player.name}
+                key={g.name}
                 className="flex items-center justify-between rounded-lg bg-danger/5 border border-danger/10 p-3"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{player.country}</span>
-                  <span className="font-medium text-foreground">
-                    {player.name}
-                  </span>
+                  <span className="text-lg">{flagByName.get(g.name) ?? "🌍"}</span>
+                  <div>
+                    <span className="font-medium text-foreground">{g.name}</span>
+                    <span className="ml-2 text-xs text-muted font-mono">{g.prev_odds} → {g.odds}</span>
+                  </div>
                 </div>
                 <span className="text-danger font-mono font-bold text-sm">
-                  ▼ {Math.abs(calculateTrend(player))} spots
+                  ▼ {Math.abs(oddsMovement(g))} spots
                 </span>
               </div>
             ))}
@@ -108,7 +125,7 @@ export default async function ResearchPage({
             Full Field — 2026 Masters
           </h2>
           <span className="ml-auto text-xs text-muted font-medium bg-bg-muted px-3 py-1 rounded-full">
-            {PLAYERS.length} players · Updated weekly
+            {dbGolfers.length} players · Odds updated {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         </div>
         <PlayerTable initialPlayer={player} />

@@ -7,6 +7,8 @@ export type GolferRow = {
   world_rank: number | null;
   odds: string | null;
   odds_rank: number | null;
+  prev_odds: string | null;
+  prev_odds_rank: number | null;
   tier: number | null;
   masters_wins: number;
   best_finish: string | null;
@@ -16,6 +18,12 @@ export type GolferRow = {
   is_liv: boolean;
   updated_at: string;
 };
+
+/** Positive = moved up (trending up), negative = moved down, 0 = no change */
+export function oddsMovement(g: GolferRow): number {
+  if (g.prev_odds_rank == null || g.odds_rank == null) return 0;
+  return g.prev_odds_rank - g.odds_rank;
+}
 
 export async function getAllGolfers(): Promise<GolferRow[]> {
   const db = createServiceClient();
@@ -89,6 +97,44 @@ export async function upsertGolfers(
     return { inserted: 0, error: error.message };
   }
   return { inserted: count ?? golfers.length, error: null };
+}
+
+export type OddsUpdateInput = {
+  name: string;
+  odds: string;
+  odds_rank: number;
+  tier: number;
+};
+
+/**
+ * Updates odds for a list of golfers, automatically snapshotting the current
+ * odds → prev_odds / prev_odds_rank before overwriting. Uses a DB function so
+ * the snapshot and update happen atomically. Run this each time a new odds
+ * sheet comes in — trends on the research page always compare against the
+ * previous snapshot.
+ */
+export async function updateGolferOdds(
+  updates: OddsUpdateInput[]
+): Promise<{ updated: number; error: string | null }> {
+  if (updates.length === 0) return { updated: 0, error: null };
+  const db = createServiceClient();
+
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const u of updates) {
+    const { error } = await db.rpc("update_golfer_odds", {
+      p_name:      u.name,
+      p_odds:      u.odds,
+      p_odds_rank: u.odds_rank,
+      p_tier:      u.tier,
+    });
+    if (error) errors.push(`${u.name}: ${error.message}`);
+    else updated++;
+  }
+
+  if (errors.length > 0) return { updated, error: errors.slice(0, 5).join("; ") };
+  return { updated, error: null };
 }
 
 /** Returns a map of lowercase golfer name → golfer id for fast score lookups */
