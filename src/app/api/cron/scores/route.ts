@@ -79,10 +79,39 @@ const ESPN_NAME_ALIASES: Record<string, string> = {
   "pierceson coody":               "Pierceson Coody",
 };
 
-/** Resolves an ESPN display name to the canonical DB name. */
-function resolveGolferName(espnName: string): string {
+/** Resolves an ESPN display name to the canonical DB name.
+ *  1. Checks the static alias map first (fast, exact).
+ *  2. Falls back to fuzzy last-name matching against known DB names
+ *     (catches first-name variants like "Matthew" vs "Matt" automatically).
+ */
+function resolveGolferName(
+  espnName: string,
+  knownDbNames?: Set<string>
+): { resolved: string; method: "exact" | "alias" | "fuzzy" | "unmatched" } {
   const key = espnName.toLowerCase().trim();
-  return ESPN_NAME_ALIASES[key] ?? espnName;
+
+  // 1. Static alias map
+  if (ESPN_NAME_ALIASES[key]) {
+    return { resolved: ESPN_NAME_ALIASES[key], method: "alias" };
+  }
+
+  // 2. Exact match (will be confirmed by nameToId lookup, but return as-is)
+  if (!knownDbNames) {
+    return { resolved: espnName, method: "exact" };
+  }
+
+  // 3. Fuzzy: last-name match — only safe when exactly one DB name shares the last name
+  const espnLast = key.split(" ").pop() ?? "";
+  const fuzzyMatches = [...knownDbNames].filter((dbName) => {
+    const dbLast = dbName.split(" ").pop()?.toLowerCase() ?? "";
+    return dbLast === espnLast;
+  });
+
+  if (fuzzyMatches.length === 1) {
+    return { resolved: fuzzyMatches[0], method: "fuzzy" };
+  }
+
+  return { resolved: espnName, method: "unmatched" };
 }
 
 export const runtime = "nodejs";
@@ -114,8 +143,18 @@ export async function GET(req: NextRequest) {
     updatedAt: snapshot.fetchedAt,
   });
 
-  // 3. Load golfer name → DB id map
+  // 3. Load golfer name → DB id map + build a set of known canonical names for fuzzy matching
   const nameToId = await getGolferNameToIdMap();
+  const knownDbNames = new Set(nameToId.keys().map((k) => {
+    // nameToId keys are already lowercase; reconstruct proper-case from values isn't possible here,
+    // so we store the original-case names separately via a second pass
+    return k;
+  }));
+  // Proper-case names for fuzzy matching (last-name comparison needs original casing)
+  const canonicalNames = new Set<string>();
+  nameToId.forEach((_, k) => canonicalNames.add(
+    k.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+  ));
 
   // 4. Upsert each golfer's round scores
   let upserted = 0;
@@ -125,8 +164,10 @@ export async function GET(req: NextRequest) {
   const skippedNames: string[] = [];
 
   for (const golfer of snapshot.golfers) {
-    const resolvedName = resolveGolferName(golfer.name);
-    if (resolvedName !== golfer.name) aliasResolved.push(`${golfer.name}→${resolvedName}`);
+    const { resolved: resolvedName, method } = resolveGolferName(golfer.name, canonicalNames);
+    if (method === "alias" || method === "fuzzy") {
+      aliasResolved.push(`${golfer.name}→${resolvedName} (${method})`);
+    }
     const golferId = nameToId.get(resolvedName.toLowerCase().trim());
     if (!golferId) {
       skipped++;

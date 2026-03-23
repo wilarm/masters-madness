@@ -272,8 +272,16 @@ function GolferCard({ pick, index }: { pick: GolferPick; index: number }) {
         <div className="flex items-center gap-2 mb-2">
           {pick.totalScore !== null ? (
             <ScoreBadge score={pick.totalScore} size="md" />
-          ) : (
+          ) : isCut ? (
             <span className="text-sm text-score-cut font-mono font-semibold">MC</span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 text-xs text-muted font-medium"
+              title="Score not yet available — updates every 10 minutes during the tournament"
+            >
+              <span className="animate-pulse">⏳</span>
+              <span>Syncing</span>
+            </span>
           )}
           {pick.position && (
             <span className="text-xs text-muted font-medium tabular-nums">
