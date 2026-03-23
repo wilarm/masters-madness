@@ -317,7 +317,7 @@ export function PlayerTable({
                 { field: "currentRank" as SortField, label: "#",      className: "w-12", tooltip: "Rank by Masters odds" },
                 { field: "name"        as SortField, label: "PLAYER", className: "",     tooltip: "Golfer name and country" },
                 { field: "odds"        as SortField, label: "ODDS",   className: "w-20", tooltip: "Odds to win the 2026 Masters" },
-                { field: "trend"       as SortField, label: "TREND",  className: "w-20", tooltip: "Recent odds movement — spots gained or lost over the past week" },
+                { field: "trend"       as SortField, label: "TREND",  className: "w-20", tooltip: "Odds movement since Dec 31, 2025 — spots gained or lost since the season baseline" },
                 { field: "tier"        as SortField, label: "TIER",   className: "w-24", tooltip: "Draft tier (T1 = favorites, T9 = longshots). You pick one golfer from each tier." },
                 { field: "worldRank"   as SortField, label: "OWGR",   className: "w-16", tooltip: "Official World Golf Ranking — global performance ranking across all tours" },
               ].map(({ field, label, className: colClass, tooltip }) => (

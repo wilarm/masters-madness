@@ -9,6 +9,9 @@ export type GolferRow = {
   odds_rank: number | null;
   prev_odds: string | null;
   prev_odds_rank: number | null;
+  // Dec 31 2025 baseline — set once, never overwritten. Used for season-long trend.
+  starting_odds: string | null;
+  starting_odds_rank: number | null;
   tier: number | null;
   masters_wins: number;
   best_finish: string | null;
@@ -25,8 +28,21 @@ export type GolferRow = {
   updated_at: string;
 };
 
-/** Positive = moved up (trending up), negative = moved down, 0 = no change */
+/**
+ * Season-long trend vs Dec 31 2025 baseline.
+ * Positive = moved up in odds (trending up), negative = drifted out.
+ * Returns 0 for players with no starting baseline (added after Dec 31).
+ */
 export function oddsMovement(g: GolferRow): number {
+  if (g.starting_odds_rank == null || g.odds_rank == null) return 0;
+  return g.starting_odds_rank - g.odds_rank;
+}
+
+/**
+ * Most-recent update movement (prev snapshot vs current).
+ * Used to show "changed since last odds update" in the odds column.
+ */
+export function recentOddsMovement(g: GolferRow): number {
   if (g.prev_odds_rank == null || g.odds_rank == null) return 0;
   return g.prev_odds_rank - g.odds_rank;
 }

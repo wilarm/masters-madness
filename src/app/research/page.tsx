@@ -62,6 +62,7 @@ export default async function ResearchPage({
             <h2 className="font-heading text-lg font-bold text-foreground">
               Trending Up 📈
             </h2>
+            <span className="ml-auto text-[10px] text-muted font-medium">since Dec 31</span>
           </div>
           <div className="space-y-2">
             {trendingUp.length === 0 ? (
@@ -92,6 +93,7 @@ export default async function ResearchPage({
             <h2 className="font-heading text-lg font-bold text-foreground">
               Trending Down 📉
             </h2>
+            <span className="ml-auto text-[10px] text-muted font-medium">since Dec 31</span>
           </div>
           <div className="space-y-2">
             {trendingDown.length === 0 ? (
