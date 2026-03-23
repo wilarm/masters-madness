@@ -125,6 +125,12 @@ export default async function RulesPage({
         </Card>
 
         {/* Overview Tiles — 4 key stats at a glance */}
+        <div className="space-y-2">
+        {!poolSlug && (
+          <p className="text-xs text-muted text-center italic">
+            Default setup — entry fee, payouts, and scoring are fully customizable per pool.
+          </p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Tile 1: Scoring */}
           <OverviewTile
@@ -159,6 +165,7 @@ export default async function RulesPage({
             sublabel={poolSlug ? (prizePoolLabel ? `${prizePoolLabel} prize pool` : "prize pool") : "set by commissioner"}
             accent="gold"
           />
+        </div>
         </div>
 
         {/* How It Works */}
