@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { getCurrentEvent } from "@/lib/db/settings";
 import { getFullLeaderboard } from "@/lib/db/scores";
-import { Calendar, Flag } from "lucide-react";
+import { Calendar, Flag, Clock } from "lucide-react";
 
 function formatScore(score: number | null): string {
   if (score === null) return "—";
@@ -42,17 +42,27 @@ export default async function LeaderboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-heading text-3xl font-bold text-foreground">Live Leaderboard</h1>
-            <p className="text-muted mt-1">PGA Tour</p>
+            <p className="text-muted mt-1">2026 Masters Tournament · Augusta National</p>
           </div>
         </div>
         <Card>
-          <div className="py-16 text-center">
-            <Flag className="h-10 w-10 text-muted/30 mx-auto mb-4" />
-            <p className="font-semibold text-foreground mb-1">No active tournament</p>
-            <p className="text-sm text-muted">
-              Leaderboard data appears here once a PGA Tour event is underway.
-              Scores update automatically every 10 minutes.
+          <div className="py-20 text-center px-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-masters-green/10 mb-6">
+              <Clock className="h-8 w-8 text-masters-green" />
+            </div>
+            <h2 className="font-heading text-2xl font-bold text-foreground mb-2">
+              The Masters hasn&apos;t started yet
+            </h2>
+            <p className="text-muted max-w-md mx-auto mb-2">
+              The live leaderboard will populate automatically once the 2026 Masters Tournament begins.
             </p>
+            <p className="text-sm font-semibold text-masters-green">
+              First round tee times: Thursday, April 9, 2026
+            </p>
+            <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted/60">
+              <Flag className="h-3.5 w-3.5" />
+              <span>Scores update every 10 minutes during play · Augusta National Golf Club</span>
+            </div>
           </div>
         </Card>
       </div>
