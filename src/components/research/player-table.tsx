@@ -92,9 +92,10 @@ export function PlayerTable({
   const mergedPlayers = useMemo((): MergedPlayer[] =>
     PLAYERS.map((p): MergedPlayer => {
       const db = dbMap.get(p.name.toLowerCase().trim());
+      // Season-long trend: Dec 31 baseline vs current odds_rank
       const dbTrend = db
-        ? (db.prev_odds_rank != null && db.odds_rank != null
-            ? db.prev_odds_rank - db.odds_rank
+        ? (db.starting_odds_rank != null && db.odds_rank != null
+            ? db.starting_odds_rank - db.odds_rank
             : 0)
         : 0;
       const rawTags: { name: string; emoji: string; color: string }[] = db?.group_tags

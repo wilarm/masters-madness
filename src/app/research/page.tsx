@@ -76,7 +76,7 @@ export default async function ResearchPage({
                   <span className="text-lg">{flagByName.get(g.name) ?? "🌍"}</span>
                   <div>
                     <span className="font-medium text-foreground">{g.name}</span>
-                    <span className="ml-2 text-xs text-muted font-mono">{g.prev_odds} → {g.odds}</span>
+                    <span className="ml-2 text-xs text-muted font-mono">{g.starting_odds} → {g.odds}</span>
                   </div>
                 </div>
                 <span className="text-success font-mono font-bold text-sm">
@@ -107,7 +107,7 @@ export default async function ResearchPage({
                   <span className="text-lg">{flagByName.get(g.name) ?? "🌍"}</span>
                   <div>
                     <span className="font-medium text-foreground">{g.name}</span>
-                    <span className="ml-2 text-xs text-muted font-mono">{g.prev_odds} → {g.odds}</span>
+                    <span className="ml-2 text-xs text-muted font-mono">{g.starting_odds} → {g.odds}</span>
                   </div>
                 </div>
                 <span className="text-danger font-mono font-bold text-sm">
