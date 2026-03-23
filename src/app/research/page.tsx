@@ -128,7 +128,7 @@ export default async function ResearchPage({
             {dbGolfers.length} players · Odds updated {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         </div>
-        <PlayerTable initialPlayer={player} />
+        <PlayerTable initialPlayer={player} dbGolfers={dbGolfers} />
       </Card>
     </div>
   );

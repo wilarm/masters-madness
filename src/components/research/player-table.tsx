@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { PLAYERS, calculateTrend, getTierColor, getTierLabel, type PlayerData } from "@/data/players";
+import { PLAYERS, getTierColor, getTierLabel, type PlayerData } from "@/data/players";
 import { cn } from "@/lib/utils";
 import { useWatchlist } from "@/lib/watchlist";
-import { getPlayerGroupTags } from "@/lib/player-groups";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import type { GolferRow } from "@/lib/db/golfers";
+
+// Tags config for rendering (maps DB string → emoji + color)
+const TAG_CONFIG: Record<string, { emoji: string; color: string }> = {
+  "Champ":     { emoji: "🏆", color: "bg-amber-100 text-amber-800" },
+  "LIV":       { emoji: "💰", color: "bg-rose-100 text-rose-700" },
+  "Lefty":     { emoji: "🤚", color: "bg-sky-100 text-sky-700" },
+  "Rookie":    { emoji: "⭐", color: "bg-purple-100 text-purple-700" },
+  "35+":       { emoji: "👴", color: "bg-stone-100 text-stone-700" },
+  "Fan Fav":   { emoji: "🎉", color: "bg-pink-100 text-pink-700" },
+  "Euro Tour": { emoji: "🇪🇺", color: "bg-blue-100 text-blue-700" },
+  "Intl":      { emoji: "🌍", color: "bg-teal-100 text-teal-700" },
+};
 import {
   TrendingUp,
   TrendingDown,
@@ -34,7 +46,26 @@ const GROUP_FILTER_OPTIONS: { name: string; emoji: string; color: string }[] = [
   { name: "Intl",    emoji: "🌍", color: "bg-teal-100 text-teal-700" },
 ];
 
-export function PlayerTable({ initialPlayer }: { initialPlayer?: string }) {
+// Merged player type: static fields + DB enrichment
+type MergedPlayer = PlayerData & {
+  dbOdds: string;
+  dbOddsRank: number;
+  dbTier: number;
+  dbTrend: number;
+  dbSummary: string;
+  dbBullCase: string;
+  dbBearCase: string;
+  dbRecentForm: string;
+  dbGroupTags: { name: string; emoji: string; color: string }[];
+};
+
+export function PlayerTable({
+  initialPlayer,
+  dbGolfers = [],
+}: {
+  initialPlayer?: string;
+  dbGolfers?: GolferRow[];
+}) {
   const [search, setSearch] = useState(initialPlayer ?? "");
   const [tierFilter, setTierFilter] = useState<number | null>(null);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
@@ -44,18 +75,58 @@ export function PlayerTable({ initialPlayer }: { initialPlayer?: string }) {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(initialPlayer ?? null);
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null);
-  // If deep-linking to a player, show full field so they're always visible
   const [expanded, setExpanded] = useState(!!initialPlayer);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { watchlist, toggle: toggleWatchlist, isWatchlisted } = useWatchlist();
 
   const INITIAL_VISIBLE = 15;
 
-  const filteredPlayers = PLAYERS.filter((p) => {
+  // Build a name → GolferRow map for O(1) lookups
+  const dbMap = useMemo(() => {
+    const m = new Map<string, GolferRow>();
+    for (const g of dbGolfers) m.set(g.name.toLowerCase().trim(), g);
+    return m;
+  }, [dbGolfers]);
+
+  // Merge static PlayerData with live DB enrichment
+  const mergedPlayers = useMemo((): MergedPlayer[] =>
+    PLAYERS.map((p): MergedPlayer => {
+      const db = dbMap.get(p.name.toLowerCase().trim());
+      const dbTrend = db
+        ? (db.prev_odds_rank != null && db.odds_rank != null
+            ? db.prev_odds_rank - db.odds_rank
+            : 0)
+        : 0;
+      const rawTags: { name: string; emoji: string; color: string }[] = db?.group_tags
+        ? db.group_tags
+            .map((t) => ({ name: t, ...(TAG_CONFIG[t] ?? { emoji: "", color: "bg-bg-muted text-muted" }) }))
+            .filter((t) => t.emoji)
+        : [];
+      return {
+        ...p,
+        // Override with live DB values when available
+        odds:         db?.odds      ?? p.odds,
+        oddsNum:      db?.odds_rank ?? p.oddsNum,
+        currentRank:  db?.odds_rank ?? p.currentRank,
+        tier:         db?.tier      ?? p.tier,
+        dbOdds:       db?.odds      ?? p.odds,
+        dbOddsRank:   db?.odds_rank ?? p.currentRank,
+        dbTier:       db?.tier      ?? p.tier,
+        dbTrend,
+        dbSummary:    db?.summary    ?? p.summary    ?? "",
+        dbBullCase:   db?.bull_case  ?? p.bullCase   ?? "",
+        dbBearCase:   db?.bear_case  ?? p.bearCase   ?? "",
+        dbRecentForm: db?.recent_form ?? p.recentForm ?? "",
+        dbGroupTags:  rawTags,
+      };
+    }),
+  [dbMap]);
+
+  const filteredPlayers = mergedPlayers.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesTier = filterMode === "groups" || tierFilter === null || p.tier === tierFilter;
+    const matchesTier = filterMode === "groups" || tierFilter === null || p.dbTier === tierFilter;
     const matchesGroup = filterMode === "tiers" || groupFilter === null ||
-      getPlayerGroupTags(p).some((t) => t.name === groupFilter);
+      p.dbGroupTags.some((t) => t.name === groupFilter);
     const matchesWatchlist = !showWatchlistOnly || isWatchlisted(p.name);
     return matchesSearch && matchesTier && matchesGroup && matchesWatchlist;
   }).sort((a, b) => {
@@ -63,33 +134,13 @@ export function PlayerTable({ initialPlayer }: { initialPlayer?: string }) {
     let bVal: number | string;
 
     switch (sortField) {
-      case "currentRank":
-        aVal = a.currentRank;
-        bVal = b.currentRank;
-        break;
-      case "name":
-        aVal = a.name;
-        bVal = b.name;
-        break;
-      case "tier":
-        aVal = a.tier;
-        bVal = b.tier;
-        break;
-      case "odds":
-        aVal = a.oddsNum;
-        bVal = b.oddsNum;
-        break;
-      case "worldRank":
-        aVal = a.worldRank;
-        bVal = b.worldRank;
-        break;
-      case "trend":
-        aVal = calculateTrend(a);
-        bVal = calculateTrend(b);
-        break;
-      default:
-        aVal = a.currentRank;
-        bVal = b.currentRank;
+      case "currentRank": aVal = a.dbOddsRank;  bVal = b.dbOddsRank;  break;
+      case "name":        aVal = a.name;         bVal = b.name;         break;
+      case "tier":        aVal = a.dbTier;       bVal = b.dbTier;       break;
+      case "odds":        aVal = a.dbOddsRank;   bVal = b.dbOddsRank;   break;
+      case "worldRank":   aVal = a.worldRank;    bVal = b.worldRank;    break;
+      case "trend":       aVal = a.dbTrend;      bVal = b.dbTrend;      break;
+      default:            aVal = a.dbOddsRank;   bVal = b.dbOddsRank;
     }
 
     if (typeof aVal === "string" && typeof bVal === "string") {
@@ -297,7 +348,6 @@ export function PlayerTable({ initialPlayer }: { initialPlayer?: string }) {
           </thead>
           <tbody>
             {visiblePlayers.map((player, idx) => {
-              const trend = calculateTrend(player);
               const isExpanded = expandedPlayer === player.name;
               const isHovered = hoveredPlayer === player.name;
 
@@ -305,7 +355,7 @@ export function PlayerTable({ initialPlayer }: { initialPlayer?: string }) {
                 <PlayerRow
                   key={player.name}
                   player={player}
-                  trend={trend}
+                  trend={player.dbTrend}
                   isExpanded={isExpanded}
                   isHovered={isHovered}
                   index={idx}
@@ -375,7 +425,7 @@ function PlayerRow({
   onMouseEnter,
   onMouseLeave,
 }: {
-  player: PlayerData;
+  player: MergedPlayer;
   trend: number;
   isExpanded: boolean;
   isHovered: boolean;
@@ -422,7 +472,7 @@ function PlayerRow({
         {/* Rank */}
         <td className="py-3 px-3">
           <span className="font-mono font-bold text-foreground">
-            {player.currentRank}
+            {player.dbOddsRank}
           </span>
         </td>
 
@@ -447,7 +497,7 @@ function PlayerRow({
             <span className="text-lg">{player.country}</span>
             <span className="font-medium text-foreground">{player.name}</span>
             <div className="hidden sm:flex items-center gap-1 flex-wrap">
-              {getPlayerGroupTags(player).map((tag) => (
+              {player.dbGroupTags.map((tag) => (
                 <span
                   key={tag.name}
                   title={tag.name}
@@ -524,9 +574,9 @@ function PlayerRow({
                 Tier {player.tier}
               </span>
             </div>
-            {getPlayerGroupTags(player).length > 0 && (
+            {player.dbGroupTags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
-                {getPlayerGroupTags(player).map((tag) => (
+                {player.dbGroupTags.map((tag) => (
                   <span
                     key={tag.name}
                     className={cn("inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold", tag.color)}
@@ -537,7 +587,7 @@ function PlayerRow({
               </div>
             )}
             <p className="text-sm text-muted leading-relaxed mb-3">
-              {player.summary}
+              {player.dbSummary}
             </p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-bg-muted p-2">
@@ -555,7 +605,7 @@ function PlayerRow({
               <div className="rounded-lg bg-bg-muted p-2">
                 <span className="text-muted font-medium">Form</span>
                 <p className="font-semibold text-foreground text-[11px]">
-                  {player.recentForm}
+                  {player.dbRecentForm}
                 </p>
               </div>
               <div className="rounded-lg bg-bg-muted p-2">
@@ -576,7 +626,7 @@ function PlayerRow({
           <td colSpan={6} className="px-4 py-5">
             <div className="max-w-3xl mx-auto space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
-                {player.summary}
+                {player.dbSummary}
               </p>
 
               <div className="grid sm:grid-cols-2 gap-3">
@@ -584,13 +634,13 @@ function PlayerRow({
                   <h5 className="text-xs font-bold text-success uppercase mb-1 flex items-center gap-1">
                     <TrendingUp className="h-3 w-3" /> Bull Case
                   </h5>
-                  <p className="text-sm text-foreground">{player.bullCase}</p>
+                  <p className="text-sm text-foreground">{player.dbBullCase}</p>
                 </div>
                 <div className="rounded-lg bg-danger/10 border border-danger/20 p-3">
                   <h5 className="text-xs font-bold text-danger uppercase mb-1 flex items-center gap-1">
                     <TrendingDown className="h-3 w-3" /> Bear Case
                   </h5>
-                  <p className="text-sm text-foreground">{player.bearCase}</p>
+                  <p className="text-sm text-foreground">{player.dbBearCase}</p>
                 </div>
               </div>
 
@@ -598,7 +648,7 @@ function PlayerRow({
                 <StatBlock label="Masters Appearances" value={String(player.mastersAppearances)} />
                 <StatBlock label="Best Masters Finish" value={player.bestMastersFinish} />
                 <StatBlock label="2025 Masters" value={player.masters2025} />
-                <StatBlock label="Recent Form" value={player.recentForm} small />
+                <StatBlock label="Recent Form" value={player.dbRecentForm} small />
               </div>
             </div>
           </td>

@@ -16,6 +16,12 @@ export type GolferRow = {
   age: number | null;
   is_lefty: boolean;
   is_liv: boolean;
+  // AI-enriched fields (populated by scripts/enrich-golfers.ts)
+  summary: string | null;
+  bull_case: string | null;
+  bear_case: string | null;
+  recent_form: string | null;
+  group_tags: string[] | null;
   updated_at: string;
 };
 

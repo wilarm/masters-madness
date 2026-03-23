@@ -63,17 +63,22 @@ Player context: Current odds ${odds}, Tier ${tier} of 9 in a Masters fantasy poo
 
 Return valid JSON only, no markdown fences.`;
 
-  // Use gpt-4o with web search preview for up-to-date 2026 data
-  const response = await openai.chat.completions.create({
+  // Use the Responses API which supports web_search_preview
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const response = await (openai as any).responses.create({
     model: "gpt-4o",
-    tools: [{ type: "web_search_preview" as "file_search" }],
-    tool_choice: "required",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.2,
-  } as Parameters<typeof openai.chat.completions.create>[0]);
+    tools: [{ type: "web_search_preview" }],
+    input: prompt,
+  });
 
-  // Extract the text content from the response
-  const content = response.choices[0].message.content ?? "{}";
+  // Extract text output from the response
+  const content: string =
+    response.output
+      ?.filter((b: { type: string }) => b.type === "message")
+      ?.flatMap((b: { content: { type: string; text: string }[] }) =>
+        b.content?.filter((c) => c.type === "output_text").map((c) => c.text)
+      )
+      ?.join("") ?? "{}";
 
   // Strip markdown fences if present
   const jsonStr = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
