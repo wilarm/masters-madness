@@ -61,9 +61,9 @@ export const PLAYERS: PlayerData[] = [
     currentRank: 2,
     tier: 1,
     worldRank: 2,
-    mastersAppearances: 17,
-    bestMastersFinish: "T4 (2015, 2022)",
-    masters2025: "T7",
+    mastersAppearances: 18,
+    bestMastersFinish: "Won (2025)",
+    masters2025: "Won",
     recentForm: "3rd, 1st, 4th, 2nd, 6th",
     summary:
       "The career Grand Slam chase defines his legacy. Four majors, every course record imaginable — except a green jacket. His 2011 Sunday collapse still haunts but his game has never been more complete. Ball-striking this season is elite.",
@@ -705,7 +705,7 @@ export const PLAYERS: PlayerData[] = [
 
   // ─── TIER 7 — LONGSHOT ────────────────────────────────────────────────────
   {
-    name: "Sungjae Im",
+    name: "Sung-Jae Im",
     country: "🇰🇷",
     odds: "+8000",
     oddsNum: 8000,
@@ -716,7 +716,7 @@ export const PLAYERS: PlayerData[] = [
     mastersAppearances: 7,
     bestMastersFinish: "T2 (2020)",
     masters2025: "T25",
-    recentForm: "1st, 8th, 15th, 3rd, 5th",
+    recentForm: "T4, MC",
     summary:
       "The iron man of golf — plays more events than almost anyone and his consistency is remarkable. His T2 in 2020 showed his Augusta ceiling. Ball-striking machine who can go low when everything clicks.",
     bullCase:
