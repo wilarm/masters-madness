@@ -137,7 +137,7 @@ export function Navbar() {
 
           {/* Logo + Pool Switcher */}
           <div className="flex items-center gap-3">
-            <Link href={hasPool && activeSlug ? `/standings?pool=${activeSlug}` : "/"} className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-3 group">
               <Image
                 src="/favicon-icon.png"
                 alt="Masters Madness"
