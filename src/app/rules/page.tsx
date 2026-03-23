@@ -76,10 +76,15 @@ export default async function RulesPage({
       : null;
   const prizePoolLabel = poolPrizePool || autoPrizePool || null;
 
-  const communityMessage = poolCommunityMessage || rules.communityMessage;
+  const genericWelcomeMessage =
+    "Pick 9 golfers across 9 tiers and compete with friends during the Masters Tournament. " +
+    "Each pool is fully customizable — commissioners set the entry fee, payout structure, and invite their own group. " +
+    "Lowest combined score wins. May the best picker win!";
 
-  // Community message title: pool config > global rules > dynamic default
-  const defaultTitle = pool ? `Welcome to ${pool.name}` : rules.communityMessageTitle;
+  const communityMessage = poolCommunityMessage || (pool ? rules.communityMessage : genericWelcomeMessage);
+
+  // Community message title: pool config > pool name > generic
+  const defaultTitle = pool ? `Welcome to ${pool.name}` : "Welcome to Masters Madness";
   const communityTitle = poolCommunityTitle || defaultTitle;
 
   const topPayout = Array.isArray(config.payouts) && (config.payouts as {place: string; amount: string}[]).length > 0
@@ -141,17 +146,17 @@ export default async function RulesPage({
           <OverviewTile
             icon={DollarSign}
             label="Entry Fee"
-            value={poolEntryFee != null && poolEntryFee > 0 ? `$${poolEntryFee}` : (rules.entryFee.split(" ")[0] || "TBD")}
-            sublabel={poolVenmoLink ? undefined : "contact commissioner"}
+            value={poolEntryFee != null && poolEntryFee > 0 ? `$${poolEntryFee}` : "Customizable"}
+            sublabel={poolVenmoLink ? undefined : poolSlug ? "contact commissioner" : "set by commissioner"}
             venmoLink={poolVenmoLink}
             accent="gold"
           />
-          {/* Tile 4: Top Payout */}
+          {/* Tile 4: Payouts */}
           <OverviewTile
             icon={Award}
-            label="1st Place"
-            value={topPayout ?? "TBD"}
-            sublabel={prizePoolLabel ? `${prizePoolLabel} prize pool` : "prize pool"}
+            label="Payouts"
+            value={poolSlug ? (topPayout ?? "TBD") : "Customizable"}
+            sublabel={poolSlug ? (prizePoolLabel ? `${prizePoolLabel} prize pool` : "prize pool") : "set by commissioner"}
             accent="gold"
           />
         </div>
