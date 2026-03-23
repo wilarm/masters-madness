@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import { Card, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Live Masters Leaderboard 2026 — Masters Madness",
+  description:
+    "Track live scores from the 2026 Masters Tournament at Augusta National. Real-time leaderboard updated every 10 minutes during the April 9–12 tournament.",
+  openGraph: {
+    title: "Live Masters Leaderboard 2026 — Masters Madness",
+    description:
+      "Track live scores from the 2026 Masters Tournament at Augusta National. Real-time leaderboard updated every 10 minutes during the April 9–12 tournament.",
+  },
+};
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { getCurrentEvent } from "@/lib/db/settings";
 import { getFullLeaderboard } from "@/lib/db/scores";

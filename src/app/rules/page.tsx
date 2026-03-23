@@ -1,5 +1,17 @@
+import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
+
+export const metadata: Metadata = {
+  title: "Pool Rules & Scoring — Masters Madness 2026",
+  description:
+    "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, cut rules, tiebreakers, and payout structure.",
+  openGraph: {
+    title: "Pool Rules & Scoring — Masters Madness 2026",
+    description:
+      "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, cut rules, tiebreakers, and payout structure.",
+  },
+};
 import { getRulesContent } from "@/lib/db/settings";
 import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { CopyShareButton } from "@/components/ui/share-button";

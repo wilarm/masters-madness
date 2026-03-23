@@ -1012,6 +1012,70 @@ function YourPoolsSection({ pools }: { pools: PoolWithRole[] }) {
   );
 }
 
+// ─── FAQ Schema (GEO: +40% AI search visibility) ───────────────────────────────
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is Masters Madness?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Masters Madness is a free fantasy golf pool platform built specifically for the Masters Tournament at Augusta National. Players pick 9 golfers across 9 tiers, compete in private pools, and track live leaderboard scores during the tournament April 9–12, 2026."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the Masters golf pool work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each player selects one golfer from each of 9 tiers — Tier 1 contains the favorites like Scottie Scheffler, while Tier 9 contains long shots. Your score is the combined total of all 9 golfers' scores. The pool member with the lowest combined score wins. If a golfer misses the cut, they receive a penalty score."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How many golfers do I pick for the Masters pool?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You pick exactly 9 golfers — one from each of 9 tiers ranked by Masters odds. This tiered system ensures every pool member has a mix of favorites and long shots, making every round of the Masters exciting regardless of who you picked."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Masters Madness free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — Masters Madness is completely free during the 2026 beta. No credit card is required. Anyone who signs up before April 9, 2026 locks in free access for life."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When is the 2026 Masters Tournament?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The 2026 Masters Tournament is held April 9–12, 2026 at Augusta National Golf Club in Augusta, Georgia. Masters Madness syncs live scores from the tournament so your pool leaderboard updates in real time throughout all four rounds."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I create a private Masters pool for my friends?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. You can create a private pool in under 5 minutes, customize payout structures, set pick deadlines, and share a single invite link. Pool commissioners can manage members, lock picks, and announce results."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is Masters pool scoring calculated?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Scoring is based on each golfer's cumulative score to par across all four rounds. Your total is the sum of all 9 picked golfers' scores. Lower is better — just like real golf. Golfers who miss the cut receive a predetermined penalty score set by the pool commissioner."
+      }
+    }
+  ]
+};
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default async function HomePage() {
   const userId = await getAuthUserId();
@@ -1019,6 +1083,10 @@ export default async function HomePage() {
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       {userPools.length > 0 && <YourPoolsSection pools={userPools} />}
       <HeroSection />
       <SocialProofStrip />

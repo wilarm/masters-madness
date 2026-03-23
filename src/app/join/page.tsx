@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import { getPublicPools } from "@/lib/db/pools";
+
+export const metadata: Metadata = {
+  title: "Join a Masters Pool — Masters Madness 2026",
+  description:
+    "Join a free Masters golf pool for the 2026 tournament at Augusta National. Browse public pools or enter an invite code to compete with friends April 9–12.",
+  openGraph: {
+    title: "Join a Masters Pool — Masters Madness 2026",
+    description:
+      "Join a free Masters golf pool for the 2026 tournament at Augusta National. Browse public pools or enter an invite code to compete with friends April 9–12.",
+  },
+};
 import { getAuthUserId } from "@/lib/auth";
 import { getPoolsForUser } from "@/lib/db/pools";
 import { PoolDiscoveryCard } from "@/components/pool/pool-discovery-card";

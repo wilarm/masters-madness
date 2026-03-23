@@ -1,5 +1,17 @@
+import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { PlayerTable } from "@/components/research/player-table";
+
+export const metadata: Metadata = {
+  title: "2026 Masters Golfer Research & Odds — Masters Madness",
+  description:
+    "Research every golfer in the 2026 Masters field before you pick. Compare odds, form, and tier placement to build the best fantasy golf pool lineup at Augusta National.",
+  openGraph: {
+    title: "2026 Masters Golfer Research & Odds — Masters Madness",
+    description:
+      "Research every golfer in the 2026 Masters field before you pick. Compare odds, form, and tier placement to build the best fantasy golf pool lineup at Augusta National.",
+  },
+};
 import { TrendingUp, TrendingDown, BookOpen } from "lucide-react";
 import { PLAYERS, calculateTrend } from "@/data/players";
 

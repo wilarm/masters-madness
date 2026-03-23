@@ -68,6 +68,61 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        {/* JSON-LD: WebSite + Organization + SoftwareApplication */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Masters Madness",
+                "url": "https://mastersmadness.com",
+                "potentialAction": {
+                  "@type": "SearchAction",
+                  "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://mastersmadness.com/join?search={search_term_string}"
+                  },
+                  "query-input": "required name=search_term_string"
+                }
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                "name": "Masters Madness",
+                "url": "https://mastersmadness.com",
+                "logo": "https://mastersmadness.com/thumbnail.png",
+                "sameAs": [],
+                "description": "Masters Madness is a free fantasy golf pool platform for the Masters Tournament at Augusta National. Pick 9 golfers across 9 tiers, track live leaderboard scores, and compete with friends."
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "Masters Madness",
+                "applicationCategory": "SportsApplication",
+                "operatingSystem": "Web",
+                "url": "https://mastersmadness.com",
+                "offers": {
+                  "@type": "Offer",
+                  "price": "0",
+                  "priceCurrency": "USD",
+                  "description": "Free during 2026 beta"
+                },
+                "description": "Free fantasy golf pool app for the 2026 Masters Tournament. Pick 9 golfers across 9 tiers, run private pools, track live leaderboard scores April 9–12 at Augusta National.",
+                "screenshot": "https://mastersmadness.com/thumbnail.png",
+                "featureList": [
+                  "Live Masters Tournament leaderboard",
+                  "9-tier golfer draft system",
+                  "Private pool creation and sharing",
+                  "Custom payout structures",
+                  "Real-time scoring updates",
+                  "Built-in golfer research and odds"
+                ]
+              }
+            ])
+          }}
+        />
       </head>
       <body className="min-h-screen bg-bg antialiased">
         <ClerkProvider>

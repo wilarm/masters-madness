@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import { Trophy, TrendingUp, Calendar, Info, Medal, Layers, Users, DollarSign, Award, UserPlus } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Pool Standings — Masters Madness 2026",
+  description:
+    "See how your Masters golf pool is shaping up. Live standings ranked by total score across all 9 picked golfers. Updated in real time during the 2026 Masters Tournament.",
+  openGraph: {
+    title: "Pool Standings — Masters Madness 2026",
+    description:
+      "See how your Masters golf pool is shaping up. Live standings ranked by total score across all 9 picked golfers. Updated in real time during the 2026 Masters Tournament.",
+  },
+};
 import { cn } from "@/lib/utils";
 import { Countdown } from "@/components/ui/countdown";
 import { Card, CardTitle } from "@/components/ui/card";

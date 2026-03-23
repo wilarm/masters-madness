@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import { getPoolState } from "@/lib/pool-state";
+
+export const metadata: Metadata = {
+  title: "Pick Analytics — Masters Madness 2026",
+  description:
+    "See which Masters golfers are most popular across all pools. Analyze pick trends, ownership percentages, and find the best differentiated picks for your 2026 Masters pool.",
+  openGraph: {
+    title: "Pick Analytics — Masters Madness 2026",
+    description:
+      "See which Masters golfers are most popular across all pools. Analyze pick trends, ownership percentages, and find the best differentiated picks for your 2026 Masters pool.",
+  },
+};
 import { AnalyticsShell } from "@/components/analytics/analytics-shell";
 import { auth } from "@clerk/nextjs/server";
 import { getPoolsForUser } from "@/lib/db/pools";
