@@ -211,42 +211,78 @@ export default async function RulesPage({
         </Card>
 
         {/* Payouts */}
-        <Card>
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
-              <Trophy className="h-5 w-5" />
-            </div>
-            <div className="w-full">
-              <h2 className="font-heading text-xl font-bold text-foreground mb-4">
-                Payouts &amp; Prizes
-              </h2>
-
-              {prizePoolLabel ? (
-                <div className="mb-4 rounded-lg bg-masters-gold/10 border border-masters-gold/30 px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">
-                    Total Prize Pool: <span className="text-masters-gold-dark">{prizePoolLabel}</span>
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="space-y-3">
-                {rules.payouts.map((row) => (
-                  <PayoutRow
-                    key={row.place}
-                    place={row.place}
-                    amount={row.amount}
-                    highlight={row.highlight}
-                  />
-                ))}
+        {poolSlug ? (
+          <Card>
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
+                <Trophy className="h-5 w-5" />
               </div>
-
-              <p className="text-sm text-muted mt-4">{rules.payoutNote}</p>
+              <div className="w-full">
+                <h2 className="font-heading text-xl font-bold text-foreground mb-4">
+                  Payouts &amp; Prizes
+                </h2>
+                {prizePoolLabel ? (
+                  <div className="mb-4 rounded-lg bg-masters-gold/10 border border-masters-gold/30 px-4 py-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      Total Prize Pool: <span className="text-masters-gold-dark">{prizePoolLabel}</span>
+                    </p>
+                  </div>
+                ) : null}
+                <div className="space-y-3">
+                  {rules.payouts.map((row) => (
+                    <PayoutRow
+                      key={row.place}
+                      place={row.place}
+                      amount={row.amount}
+                      highlight={row.highlight}
+                    />
+                  ))}
+                </div>
+                <p className="text-sm text-muted mt-4">{rules.payoutNote}</p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        ) : (
+          <Card>
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div className="w-full">
+                <h2 className="font-heading text-xl font-bold text-foreground mb-2">
+                  Payouts &amp; Side Games
+                </h2>
+                <p className="text-muted text-sm leading-relaxed mb-4">
+                  Every pool is different — commissioners set their own entry fee, prize pool, and payout structure.
+                  Split it winner-take-all, across the top 3, or however your group likes it.
+                </p>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-border-light p-4">
+                    <h3 className="font-semibold text-foreground mb-1">Custom Payouts</h3>
+                    <p className="text-sm text-muted leading-relaxed">
+                      Set 1st, 2nd, 3rd place prizes — or any split you want. The commissioner controls the full payout structure when setting up the pool.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border-light p-4">
+                    <h3 className="font-semibold text-foreground mb-1">Side Games</h3>
+                    <p className="text-sm text-muted leading-relaxed">
+                      Add friendly side bets on top of the main pool — closest to the pin, best single-round score, most birdies, or any prop your group agrees on. Keep it simple or get creative.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border-light p-4">
+                    <h3 className="font-semibold text-foreground mb-1">Free Pools</h3>
+                    <p className="text-sm text-muted leading-relaxed">
+                      No entry fee required. Run a free pool just for bragging rights — no money, no problem.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
-        {/* Entry Details — Payment only (fee + entries now in overview tiles) */}
-        {(poolVenmoLink || rules.paymentInfo) && (
+        {/* Entry Details — Payment only shown for pool-specific pages */}
+        {poolSlug && (poolVenmoLink || rules.paymentInfo) && (
           <Card>
             <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-masters-gold/15 text-masters-gold-dark flex-shrink-0 mt-1">
