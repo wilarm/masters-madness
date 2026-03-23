@@ -77,6 +77,95 @@ function divider(): string {
   return `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />`;
 }
 
+// ─── Pool Created (Commissioner) ──────────────────────────────────────────────
+
+type PoolCreatedInput = {
+  to: string;
+  displayName: string;
+  poolName: string;
+  poolSlug: string;
+  entryFee?: number | null;
+  venmoLink?: string | null;
+  maxEntries?: number | null;
+};
+
+export async function sendPoolCreated({
+  to,
+  displayName,
+  poolName,
+  poolSlug,
+  entryFee,
+  venmoLink,
+  maxEntries,
+}: PoolCreatedInput) {
+  const joinUrl = `${APP_URL}/pool/${poolSlug}`;
+
+  const entryFeeNote = entryFee
+    ? `<tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;">Entry Fee</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;">$${entryFee} per person</td>
+      </tr>`
+    : `<tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;">Entry Fee</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;">Free</td>
+      </tr>`;
+
+  const maxEntriesNote = maxEntries
+    ? `<tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;">Max Entries</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;">${maxEntries}</td>
+      </tr>`
+    : "";
+
+  const venmoNote = entryFee && venmoLink
+    ? `<p style="margin:0 0 8px;font-size:13px;color:#374151;">💸 <strong>Payment:</strong> Direct members to pay via <a href="${venmoLink}" style="color:#1a4731;">${venmoLink}</a></p>`
+    : "";
+
+  const body = `
+    ${h1(`Your pool is live! 🏆`)}
+    ${p(`Hey ${displayName}, <strong>${poolName}</strong> is all set up and ready for members. Share the link below to invite your friends.`)}
+
+    <!-- Pool details -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-bottom:24px;">
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;">Pool Name</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;">${poolName}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;">Tournament</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;">2026 Masters · Apr 9–12</td>
+      </tr>
+      ${entryFeeNote}
+      ${maxEntriesNote}
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;">Picks Lock</td>
+        <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;">April 9 at 5:00 AM MT</td>
+      </tr>
+    </table>
+
+    <!-- Forward-friendly invite block -->
+    <div style="background:#f0faf4;border:2px dashed #1a4731;border-radius:8px;padding:20px;margin-bottom:24px;text-align:center;">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#1a4731;">✉️ Forward this email to invite friends</p>
+      <p style="margin:0 0 12px;font-size:13px;color:#374151;">Anyone with this link can join <strong>${poolName}</strong> and submit their picks for the Masters.</p>
+      <a href="${joinUrl}" style="display:inline-block;background:#1a4731;color:#ffffff;font-size:15px;font-weight:700;padding:14px 28px;border-radius:6px;text-decoration:none;letter-spacing:0.01em;">Join ${poolName} →</a>
+      <p style="margin:12px 0 0;font-size:11px;color:#6b7280;word-break:break-all;">${joinUrl}</p>
+    </div>
+
+    ${venmoNote}
+    ${p("As commissioner, you can manage members, send announcements, and update pool settings at any time.")}
+    ${btn("Manage Your Pool", `${APP_URL}/pool/${poolSlug}`)}
+    ${divider()}
+    <p style="margin:0;font-size:12px;color:#9ca3af;">You created ${poolName} on Masters Madness. Questions? Reply to this email.</p>
+  `;
+
+  return getResend().emails.send({
+    from: FROM,
+    to,
+    subject: `🏆 ${poolName} is live — share this link with friends`,
+    html: layout(body),
+  });
+}
+
 // ─── Pick Confirmation ─────────────────────────────────────────────────────────
 
 type PickConfirmationInput = {

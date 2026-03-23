@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { getAuthUserId } from "@/lib/auth";
 import { getPublicPools } from "@/lib/db/pools";
+import { sendPoolCreated } from "@/lib/email";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -69,6 +70,20 @@ export async function POST(request: Request) {
         role: "commissioner",
         display_name: displayName,
       });
+    }
+
+    // Send commissioner confirmation email (fire-and-forget)
+    const commissionerEmail = user?.emailAddresses[0]?.emailAddress;
+    if (commissionerEmail) {
+      sendPoolCreated({
+        to: commissionerEmail,
+        displayName: displayName ?? "Commissioner",
+        poolName: config.name,
+        poolSlug: slug,
+        entryFee: config.entryFee ?? null,
+        venmoLink: config.venmoLink ?? null,
+        maxEntries: config.maxEntries ?? null,
+      }).catch((err) => console.error("[pools/create] Email error:", err));
     }
   } catch (err) {
     console.error("[pools/create] Supabase error:", err);
