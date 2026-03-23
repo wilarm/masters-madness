@@ -12,7 +12,7 @@ export const metadata: Metadata = {
       "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, tiebreakers, and payout structure.",
   },
 };
-import { getRulesContent } from "@/lib/db/settings";
+import { getRulesContent, topPayoutStats, type PayoutRow } from "@/lib/db/settings";
 import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { CopyShareButton } from "@/components/ui/share-button";
 import { auth } from "@clerk/nextjs/server";
@@ -87,9 +87,18 @@ export default async function RulesPage({
   const defaultTitle = pool ? `Welcome to ${pool.name}` : "Welcome to Masters Madness";
   const communityTitle = poolCommunityTitle || defaultTitle;
 
-  const topPayout = Array.isArray(config.payouts) && (config.payouts as {place: string; amount: string}[]).length > 0
-    ? (config.payouts as {place: string; amount: string}[])[0]?.amount
-    : rules.payouts[0]?.amount;
+  // Effective payout rows for this page (pool config wins over global settings)
+  const effectivePayouts: PayoutRow[] =
+    Array.isArray(config.payouts) && (config.payouts as PayoutRow[]).length > 0
+      ? (config.payouts as PayoutRow[])
+      : rules.payouts;
+
+  // Numeric prize pool for percentage math
+  const prizePoolNum =
+    poolEntryFee && poolEntryFee > 0 && members.length > 0
+      ? members.length * poolEntryFee
+      : parseFloat((prizePoolLabel ?? "").replace(/[^0-9.]/g, "")) || 0;
+  const { pct: topPayoutPct, dollars: topPayoutDollars } = topPayoutStats(effectivePayouts, prizePoolNum);
 
   const shareUrl = pool
     ? `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com"}/pool/${pool.slug}`
@@ -157,12 +166,26 @@ export default async function RulesPage({
             venmoLink={poolVenmoLink}
             accent="gold"
           />
-          {/* Tile 4: Payouts */}
+          {/* Tile 4: 1st Place payout */}
           <OverviewTile
             icon={Award}
-            label="Payouts"
-            value={poolSlug ? (topPayout ?? "TBD") : "Customizable"}
-            sublabel={poolSlug ? (prizePoolLabel ? `${prizePoolLabel} prize pool` : "prize pool") : "set by commissioner"}
+            label="1st Place"
+            value={
+              poolSlug
+                ? topPayoutPct != null
+                  ? `${topPayoutPct}%`
+                  : (effectivePayouts[0]?.amount ?? "TBD")
+                : "Customizable"
+            }
+            sublabel={
+              poolSlug
+                ? topPayoutDollars != null
+                  ? `~$${topPayoutDollars.toLocaleString()} · ${prizePoolLabel ?? "prize pool"}`
+                  : prizePoolLabel
+                    ? `${prizePoolLabel} prize pool`
+                    : "prize pool"
+                : "set by commissioner"
+            }
             accent="gold"
           />
         </div>

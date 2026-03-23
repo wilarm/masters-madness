@@ -36,6 +36,36 @@ export const DEFAULT_RULES: RulesContent = {
   shareUrl: "mastersmadness.com",
 };
 
+/**
+ * Parse a payout amount string like "$1,000" or "50%" into a plain number.
+ * Returns 0 for unparseable strings.
+ */
+export function parsePayoutAmount(str: string): number {
+  const n = parseFloat(str.replace(/[^0-9.]/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+
+/**
+ * Given a list of payout rows and the actual numeric prize pool, returns
+ * the top-place payout as { pct, dollars } where:
+ *   pct     — integer percentage of total payouts (e.g. 67)
+ *   dollars — estimated dollar amount based on the real prize pool
+ *
+ * Falls back gracefully when amounts can't be parsed.
+ */
+export function topPayoutStats(
+  payouts: PayoutRow[],
+  prizePoolNum: number
+): { pct: number | null; dollars: number | null } {
+  if (!payouts.length) return { pct: null, dollars: null };
+  const total = payouts.reduce((s, p) => s + parsePayoutAmount(p.amount), 0);
+  if (total === 0) return { pct: null, dollars: null };
+  const top = parsePayoutAmount(payouts[0].amount);
+  const pct = Math.round((top / total) * 100);
+  const dollars = prizePoolNum > 0 ? Math.round(prizePoolNum * (top / total)) : null;
+  return { pct, dollars };
+}
+
 export async function getRulesContent(): Promise<RulesContent> {
   const db = createServiceClient();
   const { data } = await db

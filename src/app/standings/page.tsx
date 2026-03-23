@@ -20,7 +20,7 @@ import { getPoolState, poolStateLabel, poolStateDotColor } from "@/lib/pool-stat
 import { auth } from "@clerk/nextjs/server";
 import { isPlatformAdmin } from "@/lib/auth";
 import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
-import { DEFAULT_RULES, type PayoutRow, getCurrentEvent } from "@/lib/db/settings";
+import { DEFAULT_RULES, type PayoutRow, getCurrentEvent, topPayoutStats } from "@/lib/db/settings";
 import { redirect } from "next/navigation";
 import { ShareButton } from "@/components/ui/share-button";
 import { LeavePoolButton } from "@/components/pool/leave-pool-button";
@@ -80,7 +80,6 @@ export default async function StandingsPage({
   const maxEntriesPerUser = typeof cfg.maxEntriesPerUser === "number" ? cfg.maxEntriesPerUser : 1;
   const entryFeeNum = cfg.entryFee != null ? Number(cfg.entryFee) : 0;
   const venmoLink = typeof cfg.venmoLink === "string" ? cfg.venmoLink : undefined;
-  const topPayout = payouts[0]?.amount ?? "TBD";
 
   // Prize pool: explicit override > auto-calc from members × fee > default sum
   const autoPrizePool = entryFeeNum > 0 && members.length > 0
@@ -95,6 +94,13 @@ export default async function StandingsPage({
             return sum + (isNaN(n) ? 0 : n);
           }, 0)
           .toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+  // Numeric prize pool for percentage math
+  const prizePoolNum =
+    entryFeeNum > 0 && members.length > 0
+      ? members.length * entryFeeNum
+      : parseFloat(prizePool.replace(/[^0-9.]/g, "")) || 0;
+  const { pct: topPayoutPct, dollars: topPayoutDollars } = topPayoutStats(payouts, prizePoolNum);
 
   const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com";
   const poolShareUrl = pool ? `${APP_URL}/pool/${pool.slug}` : null;
@@ -272,8 +278,12 @@ export default async function StandingsPage({
               <OverviewTile
                 icon={Award}
                 label="1st Place"
-                value={topPayout}
-                sublabel={`${prizePool} pool`}
+                value={topPayoutPct != null ? `${topPayoutPct}%` : (payouts[0]?.amount ?? "TBD")}
+                sublabel={
+                  topPayoutDollars != null
+                    ? `~$${topPayoutDollars.toLocaleString()} · ${prizePool} pool`
+                    : `${prizePool} pool`
+                }
                 accent="gold"
               />
             </div>
