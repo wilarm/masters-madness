@@ -977,7 +977,7 @@ export const PLAYERS: PlayerData[] = [
     currentRank: 46,
     tier: 9,
     worldRank: 100,
-    mastersAppearances: 4,
+    mastersAppearances: 3,
     bestMastersFinish: "T35 (2019)",
     masters2025: "—",
     recentForm: "10th, 20th, 5th, 15th, 8th",
@@ -1679,6 +1679,188 @@ export const PLAYERS: PlayerData[] = [
       "Five Augusta wins. Twenty-six appearances. He has done the impossible here before. In 2019 he won with a surgically rebuilt body. Augusta and Tiger Woods is the greatest relationship in sports history.",
     bearCase:
       "The body has simply not cooperated. Multiple surgeries, limited competitive reps. Missed the cut in 2025. Even Tiger's will cannot overcome the physical realities at this point.",
+  },
+  // ─── NEW 2026 FIELD ADDITIONS ─────────────────────────────────────────────
+  {
+    name: "Nicolas Echavarria",
+    country: "🇨🇴",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 87,
+    currentRank: 87,
+    tier: 9,
+    worldRank: 80,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "32-year-old Colombian making his Masters debut after earning his way through PGA Tour results. Brings crafty course management and a steady long game to Augusta for the first time.",
+    bullCase:
+      "Experienced tour pro with nothing to lose. Augusta debuts can produce magic. Strong ball-striker who manages distance well.",
+    bearCase:
+      "No Augusta experience. Masters debut pressure hits differently. At 32, this may be his only shot.",
+  },
+  {
+    name: "Casey Jarvis",
+    country: "🇿🇦",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 88,
+    currentRank: 88,
+    tier: 9,
+    worldRank: 140,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "22-year-old South African making his Masters debut. Part of the next wave of South African talent following Schwartzel and Oosthuizen. Young, long, and fearless at Augusta.",
+    bullCase:
+      "South African golfers have Augusta DNA — Schwartzel, Oosthuizen, Player. Young and explosive off the tee. Nothing to lose.",
+    bearCase:
+      "Very limited major experience. Augusta's mental demands are unlike anything on the DP World Tour.",
+  },
+  {
+    name: "Naoyuki Kataoka",
+    country: "🇯🇵",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 89,
+    currentRank: 89,
+    tier: 9,
+    worldRank: 160,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "28-year-old Japanese pro making his Masters debut alongside Hideki Matsuyama. Qualified through Japan Golf Tour results and brings precision shot-making to Augusta.",
+    bullCase:
+      "Japanese precision suits Augusta. Matsuyama proved Japanese golfers can win here. Debut pressure can be channeled into focus.",
+    bearCase:
+      "The gap between the Japan Golf Tour and Augusta is enormous. No regular exposure to this level of competition.",
+  },
+  // ─── 2026 AMATEURS ───────────────────────────────────────────────────────
+  {
+    name: "Ethan Fang",
+    country: "🇺🇸",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 90,
+    currentRank: 90,
+    tier: 9,
+    worldRank: 999,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "20-year-old American amateur making his Masters debut. One of the top college players in the country, Fang qualified through amateur championship results. Augusta will be the biggest stage of his young career.",
+    bullCase:
+      "Youth and fearlessness can be an asset at Augusta. Top amateur talent with nothing to lose.",
+    bearCase:
+      "No professional experience at this level. Augusta's back nine on Sunday is a different universe from college golf.",
+  },
+  {
+    name: "Jackson Herrington",
+    country: "🇺🇸",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 91,
+    currentRank: 91,
+    tier: 9,
+    worldRank: 999,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "19-year-old amateur making his Masters debut after qualifying through top amateur events. Among the youngest players in the 2026 field, Herrington brings raw talent and Augusta innocence.",
+    bullCase:
+      "Teenage fearlessness. No stage fright when you don't know what you're walking into.",
+    bearCase:
+      "19 years old at Augusta. The gap between elite amateur and Masters contention is enormous.",
+  },
+  {
+    name: "Brandon Holtz",
+    country: "🇺🇸",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 92,
+    currentRank: 92,
+    tier: 9,
+    worldRank: 999,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "39-year-old amateur making a remarkable Masters debut — among the oldest amateurs ever to compete at Augusta. His journey to qualify at this age is a story in itself.",
+    bullCase:
+      "Experience and composure that young amateurs lack. Mature mindset for Augusta's mental demands.",
+    bearCase:
+      "Competing as an amateur at 39 means the professional window has passed. True hail mary.",
+  },
+  {
+    name: "Mason Howell",
+    country: "🇺🇸",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 93,
+    currentRank: 93,
+    tier: 9,
+    worldRank: 999,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "18-year-old amateur — one of the youngest players in the 2026 field. Howell qualified through top junior and amateur results. Making history just by teeing it up at Augusta National.",
+    bullCase:
+      "Pure talent, no fear, nothing to lose. Augusta loves a young underdog story.",
+    bearCase:
+      "18 years old at Augusta National. The experience gap is immense.",
+  },
+  {
+    name: "Fifa Laopakdee",
+    country: "🇹🇭",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 94,
+    currentRank: 94,
+    tier: 9,
+    worldRank: 999,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "21-year-old Thai amateur making his Masters debut and representing Thailand at Augusta National for the first time. A trailblazer for Southeast Asian golf on the world's biggest stage.",
+    bullCase:
+      "Historic debut for Thai golf. Fearless amateur with elite ball-striking foundation. Nothing to lose.",
+    bearCase:
+      "Limited exposure to this caliber of competition. True debut under the Masters spotlight.",
+  },
+  {
+    name: "Mateo Pulcini",
+    country: "🇦🇷",
+    odds: "N/L",
+    oddsNum: 99999,
+    prevRank: 95,
+    currentRank: 95,
+    tier: 9,
+    worldRank: 999,
+    mastersAppearances: 1,
+    bestMastersFinish: "—",
+    masters2025: "—",
+    recentForm: "—",
+    summary:
+      "25-year-old Argentine amateur making his Masters debut. Following in the footsteps of Ángel Cabrera at Augusta. Qualified through South American amateur results.",
+    bullCase:
+      "Argentine golf tradition is strong — Cabrera won this tournament. Old-world ball-striking for Augusta's demands.",
+    bearCase:
+      "Amateur status at 25 indicates a developmental path. Augusta's field is the best in the world.",
   },
 ];
 

@@ -77,6 +77,20 @@ const ESPN_NAME_ALIASES: Record<string, string> = {
   "rasmus neergaard petersen":     "Rasmus Neergaard-Petersen",
   "marco penge":                   "Marco Penge",
   "pierceson coody":               "Pierceson Coody",
+
+  // Sam / Samuel variants
+  "samuel stevens":                "Sam Stevens",
+
+  // New 2026 field additions
+  "nicolas echavarria":            "Nicolas Echavarria",
+  "casey jarvis":                  "Casey Jarvis",
+  "naoyuki kataoka":               "Naoyuki Kataoka",
+  "ethan fang":                    "Ethan Fang",
+  "jackson herrington":            "Jackson Herrington",
+  "brandon holtz":                 "Brandon Holtz",
+  "mason howell":                  "Mason Howell",
+  "fifa laopakdee":                "Fifa Laopakdee",
+  "mateo pulcini":                 "Mateo Pulcini",
 };
 
 /** Strip diacritics for fuzzy comparison (Å→a, é→e, etc.) */

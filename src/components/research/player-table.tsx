@@ -18,6 +18,7 @@ const TAG_CONFIG: Record<string, { emoji: string; color: string }> = {
   "LIV":       { emoji: "💰", color: "bg-rose-100 text-rose-700" },
   "Lefty":     { emoji: "🤚", color: "bg-sky-100 text-sky-700" },
   "Rookie":    { emoji: "⭐", color: "bg-purple-100 text-purple-700" },
+  "Amateur":   { emoji: "🎓", color: "bg-indigo-100 text-indigo-700" },
   "35+":       { emoji: "👴", color: "bg-stone-100 text-stone-700" },
   "Fan Fav":   { emoji: "🎉", color: "bg-pink-100 text-pink-700" },
   "Euro Tour": { emoji: "🇪🇺", color: "bg-blue-100 text-blue-700" },
@@ -35,7 +36,7 @@ import {
   Eye,
 } from "lucide-react";
 
-type SortField = "currentRank" | "name" | "tier" | "odds" | "worldRank" | "trend";
+type SortField = "currentRank" | "name" | "tier" | "odds" | "worldRank" | "trend" | "age";
 type SortDir = "asc" | "desc";
 type FilterMode = "tiers" | "groups";
 
@@ -44,6 +45,7 @@ const GROUP_FILTER_OPTIONS: { name: string; emoji: string; color: string }[] = [
   { name: "LIV",     emoji: "💰", color: "bg-rose-100 text-rose-700" },
   { name: "Lefty",   emoji: "🤚", color: "bg-sky-100 text-sky-700" },
   { name: "Rookie",  emoji: "⭐", color: "bg-purple-100 text-purple-700" },
+  { name: "Amateur", emoji: "🎓", color: "bg-indigo-100 text-indigo-700" },
   { name: "35+",     emoji: "👴", color: "bg-stone-100 text-stone-700" },
   { name: "Fan Fav", emoji: "🎉", color: "bg-pink-100 text-pink-700" },
   { name: "Euro Tour",emoji: "🇪🇺", color: "bg-blue-100 text-blue-700" },
@@ -56,6 +58,7 @@ type MergedPlayer = PlayerData & {
   dbOddsRank: number;
   dbTier: number;
   dbTrend: number;
+  dbAge: number | null;
   dbSummary: string;
   dbBullCase: string;
   dbBearCase: string;
@@ -118,6 +121,7 @@ export function PlayerTable({
         dbOddsRank:   db?.odds_rank ?? p.currentRank,
         dbTier:       db?.tier      ?? p.tier,
         dbTrend,
+        dbAge:        db?.age       ?? null,
         dbSummary:    db?.summary    ?? p.summary    ?? "",
         dbBullCase:   db?.bull_case  ?? p.bullCase   ?? "",
         dbBearCase:   db?.bear_case  ?? p.bearCase   ?? "",
@@ -145,6 +149,7 @@ export function PlayerTable({
       case "odds":        aVal = a.dbOddsRank;   bVal = b.dbOddsRank;   break;
       case "worldRank":   aVal = a.worldRank;    bVal = b.worldRank;    break;
       case "trend":       aVal = a.dbTrend;      bVal = b.dbTrend;      break;
+      case "age":         aVal = a.dbAge ?? 999; bVal = b.dbAge ?? 999; break;
       default:            aVal = a.dbOddsRank;   bVal = b.dbOddsRank;
     }
 
@@ -315,7 +320,7 @@ export function PlayerTable({
       {/* Table */}
       <TooltipProvider delay={300}>
       <div className="rounded-xl border border-border overflow-x-auto">
-        <table className="w-full min-w-[560px]">
+        <table className="w-full min-w-[620px]">
           <thead>
             <tr className="bg-masters-green">
               {[
@@ -325,6 +330,7 @@ export function PlayerTable({
                 { field: "trend"       as SortField, label: "TREND",  className: "w-20", tooltip: "Odds movement since Dec 31, 2025 — spots gained or lost since the season baseline" },
                 { field: "tier"        as SortField, label: "TIER",   className: "w-24", tooltip: "Draft tier (T1 = favorites, T9 = longshots). You pick one golfer from each tier." },
                 { field: "worldRank"   as SortField, label: "OWGR",   className: "w-16", tooltip: "Official World Golf Ranking — global performance ranking across all tours" },
+                { field: "age"         as SortField, label: "AGE",    className: "w-14", tooltip: "Player age" },
               ].map(({ field, label, className: colClass, tooltip }) => (
                 <th
                   key={field}
@@ -548,6 +554,13 @@ function PlayerRow({
             #{player.worldRank}
           </span>
         </td>
+
+        {/* Age */}
+        <td className="py-3 px-3">
+          <span className="font-mono text-sm text-muted">
+            {player.dbAge != null ? player.dbAge : "—"}
+          </span>
+        </td>
       </tr>
 
       {/* Hover Tooltip — rendered via portal to avoid table stacking context */}
@@ -619,6 +632,12 @@ function PlayerRow({
                   {player.mastersAppearances}
                 </p>
               </div>
+              {player.dbAge != null && (
+                <div className="rounded-lg bg-bg-muted p-2 col-span-2">
+                  <span className="text-muted font-medium">Age</span>
+                  <p className="font-semibold text-foreground">{player.dbAge}</p>
+                </div>
+              )}
             </div>
           </div>,
           document.body
@@ -628,7 +647,7 @@ function PlayerRow({
       {/* Expanded Detail Row */}
       {isExpanded && (
         <tr className="bg-masters-green-light/50">
-          <td colSpan={6} className="px-4 py-5">
+          <td colSpan={7} className="px-4 py-5">
             <div className="max-w-3xl mx-auto space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
                 {player.dbSummary}
@@ -649,7 +668,8 @@ function PlayerRow({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <StatBlock label="Age" value={player.dbAge != null ? String(player.dbAge) : "—"} />
                 <StatBlock label="Masters Appearances" value={String(player.mastersAppearances)} />
                 <StatBlock label="Best Masters Finish" value={player.bestMastersFinish} />
                 <StatBlock label="2025 Masters" value={player.masters2025} />
