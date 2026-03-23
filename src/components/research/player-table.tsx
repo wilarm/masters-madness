@@ -8,9 +8,16 @@ import { useWatchlist } from "@/lib/watchlist";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import type { GolferRow } from "@/lib/db/golfers";
 
-/** Strips diacritics and lowercases — handles Å→a, é→e, etc. */
+/** Strips diacritics and lowercases — handles Å→a, é→e, ø→o, æ→ae, etc.
+ *  NFD handles most accents; ø/æ/ß are atomic and need explicit mapping. */
 const normalize = (s: string) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  s.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ø/gi, "o")
+    .replace(/æ/gi, "ae")
+    .replace(/ß/gi, "ss")
+    .toLowerCase()
+    .trim();
 
 // Tags config for rendering (maps DB string → emoji + color)
 const TAG_CONFIG: Record<string, { emoji: string; color: string }> = {
