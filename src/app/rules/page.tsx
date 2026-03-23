@@ -5,11 +5,11 @@ import { ScoringVisualizer } from "@/components/rules/scoring-visualizer";
 export const metadata: Metadata = {
   title: "Pool Rules & Scoring — Masters Madness 2026",
   description:
-    "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, cut rules, tiebreakers, and payout structure.",
+    "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, tiebreakers, and payout structure.",
   openGraph: {
     title: "Pool Rules & Scoring — Masters Madness 2026",
     description:
-      "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, cut rules, tiebreakers, and payout structure.",
+      "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, tiebreakers, and payout structure.",
   },
 };
 import { getRulesContent } from "@/lib/db/settings";
@@ -187,10 +187,6 @@ export default async function RulesPage({
                 <RuleItem
                   title="Scoring"
                   description={`Your team's scores are aggregated. The scores of your ${numScoring} lowest-scoring (best) golfers count towards your total.`}
-                />
-                <RuleItem
-                  title="The Cut Rule"
-                  description={`If more than ${numScoring} of your golfers miss the cut, your team will automatically use the cut line score as a replacement for each missing golfer beyond ${numScoring}.`}
                 />
               </div>
             </div>

@@ -7,24 +7,22 @@ interface Golfer {
   name: string
   tier: number
   score: number
-  missedCut: boolean
   scoreVersion: number
 }
 
 const INITIAL_GOLFERS: Golfer[] = [
-  { name: "Scottie Scheffler", tier: 1, score: -8, missedCut: false, scoreVersion: 0 },
-  { name: "Rory McIlroy",      tier: 2, score: -6, missedCut: false, scoreVersion: 0 },
-  { name: "Jon Rahm",          tier: 3, score: -4, missedCut: false, scoreVersion: 0 },
-  { name: "Brooks Koepka",     tier: 4, score: -3, missedCut: false, scoreVersion: 0 },
-  { name: "Collin Morikawa",   tier: 5, score: -2, missedCut: false, scoreVersion: 0 },
-  { name: "Viktor Hovland",    tier: 6, score: -1, missedCut: false, scoreVersion: 0 },
-  { name: "Tony Finau",        tier: 7, score:  1, missedCut: false, scoreVersion: 0 },
-  { name: "Sahith Theegala",   tier: 8, score:  3, missedCut: false, scoreVersion: 0 },
-  { name: "Min Woo Lee",       tier: 9, score:  5, missedCut: false, scoreVersion: 0 },
+  { name: "Scottie Scheffler", tier: 1, score: -8, scoreVersion: 0 },
+  { name: "Rory McIlroy",      tier: 2, score: -6, scoreVersion: 0 },
+  { name: "Jon Rahm",          tier: 3, score: -4, scoreVersion: 0 },
+  { name: "Brooks Koepka",     tier: 4, score: -3, scoreVersion: 0 },
+  { name: "Collin Morikawa",   tier: 5, score: -2, scoreVersion: 0 },
+  { name: "Viktor Hovland",    tier: 6, score: -1, scoreVersion: 0 },
+  { name: "Tony Finau",        tier: 7, score:  1, scoreVersion: 0 },
+  { name: "Sahith Theegala",   tier: 8, score:  3, scoreVersion: 0 },
+  { name: "Min Woo Lee",       tier: 9, score:  5, scoreVersion: 0 },
 ]
 
 const COUNTING_COUNT = 4
-const CUT_SCORE = 3
 
 const TIER_COLORS: Record<number, string> = {
   1: "bg-yellow-500 text-white",
@@ -50,16 +48,7 @@ function formatScore(score: number): string {
 }
 
 function getSortedGolfers(golfers: Golfer[]): Golfer[] {
-  return [...golfers].sort((a, b) => {
-    if (a.missedCut && !b.missedCut) return 1
-    if (!a.missedCut && b.missedCut) return -1
-    if (a.missedCut && b.missedCut) return 0
-    return a.score - b.score
-  })
-}
-
-function getEffectiveScore(golfer: Golfer): number {
-  return golfer.missedCut ? CUT_SCORE : golfer.score
+  return [...golfers].sort((a, b) => a.score - b.score)
 }
 
 // Maps sorted index → pixel top
@@ -89,7 +78,6 @@ type CrossingType = "to-counting" | "to-bench"
 export function ScoringVisualizer() {
   const [golfers, setGolfers] = useState<Golfer[]>(INITIAL_GOLFERS)
   const [isPlaying, setIsPlaying] = useState(true)
-  const [missedCutMode, setMissedCutMode] = useState(false)
   const [rankDeltas, setRankDeltas] = useState<Record<string, { delta: number; id: number }>>({})
   const [crossings, setCrossings] = useState<Record<string, { type: CrossingType; id: number }>>({})
   const [poolScoreFlash, setPoolScoreFlash] = useState<"better" | "worse" | null>(null)
@@ -103,27 +91,24 @@ export function ScoringVisualizer() {
   const sorted = getSortedGolfers(golfers)
   const top4 = sorted.slice(0, COUNTING_COUNT)
   const top4Names = new Set(top4.map((g) => g.name))
-  const poolScore = top4.reduce((sum, g) => sum + getEffectiveScore(g), 0)
+  const poolScore = top4.reduce((sum, g) => sum + g.score, 0)
   const cutoffScore = sorted[COUNTING_COUNT - 1]?.score ?? 0 // 4th place score = bench threshold
 
   const simulateUpdate = useCallback(() => {
     setGolfers((prev) => {
       const next = prev.map((g) => ({ ...g }))
-      const eligible = next.filter((g) => !g.missedCut)
-      if (eligible.length === 0) return next
 
       const numChanges = Math.floor(Math.random() * 2) + 2
-      const indices = [...Array(eligible.length).keys()]
+      const indices = [...Array(next.length).keys()]
       for (let i = indices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
         ;[indices[i], indices[j]] = [indices[j], indices[i]]
       }
-      const toChange = indices.slice(0, Math.min(numChanges, eligible.length))
+      const toChange = indices.slice(0, Math.min(numChanges, next.length))
       for (const idx of toChange) {
-        const golfer = eligible[idx]
-        const delta = Math.floor(Math.random() * 5) - 2
-        const found = next.find((g) => g.name === golfer.name)
+        const found = next[idx]
         if (found) {
+          const delta = Math.floor(Math.random() * 5) - 2
           found.score = Math.max(-15, Math.min(15, found.score + delta))
           found.scoreVersion += 1
         }
@@ -194,26 +179,11 @@ export function ScoringVisualizer() {
 
   const handleReset = () => {
     setGolfers(INITIAL_GOLFERS)
-    setMissedCutMode(false)
     prevSortedNamesRef.current = []
     prevCountingNamesRef.current = new Set()
     setRankDeltas({})
     setCrossings({})
     setPoolScoreFlash(null)
-  }
-
-  const handleMissedCutToggle = () => {
-    setMissedCutMode((prev) => {
-      const next = !prev
-      setGolfers((g) =>
-        g.map((golfer, i) => ({
-          ...golfer,
-          missedCut: next && i >= COUNTING_COUNT,
-          scoreVersion: next && i >= COUNTING_COUNT ? golfer.scoreVersion + 1 : golfer.scoreVersion,
-        }))
-      )
-      return next
-    })
   }
 
   return (
@@ -279,27 +249,6 @@ export function ScoringVisualizer() {
           </svg>
           Reset
         </button>
-        <button
-          onClick={handleMissedCutToggle}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer",
-            missedCutMode
-              ? "bg-red-500 text-white hover:bg-red-600"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          )}
-        >
-          <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" />
-            <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" />
-          </svg>
-          Simulate Missed Cut
-        </button>
-
-        {missedCutMode && (
-          <span className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-full px-3 py-1">
-            +{CUT_SCORE} applied as replacement
-          </span>
-        )}
       </div>
 
       {/* "Your Team" bracket */}
@@ -353,11 +302,9 @@ export function ScoringVisualizer() {
               className={cn(
                 "absolute left-0 right-0 flex items-center gap-2 sm:gap-3 rounded-xl px-2.5 sm:px-4",
                 "transition-[top] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                isCounting && !golfer.missedCut
+                isCounting
                   ? "bg-masters-green text-white shadow-[0_2px_12px_rgba(2,89,40,0.25)]"
-                  : isCounting && golfer.missedCut
-                    ? "bg-masters-green/70 text-white"
-                    : "bg-gray-100 text-gray-400",
+                  : "bg-gray-100 text-gray-400",
                 rankDelta && rankDelta.delta > 0 && "animate-[row-flash-up_0.7s_ease-out]",
                 rankDelta && rankDelta.delta < 0 && "animate-[row-flash-down_0.7s_ease-out]",
                 crossing?.type === "to-counting" && "animate-[row-flash-counting_0.8s_ease-out]",
@@ -422,21 +369,13 @@ export function ScoringVisualizer() {
                 key={`${golfer.name}-v${golfer.scoreVersion}`}
                 className={cn(
                   "shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold font-mono tabular-nums min-w-[48px] text-center",
-                  golfer.missedCut
-                    ? "bg-gray-200/50 text-gray-400 line-through"
-                    : isCounting
-                      ? "bg-white/15 text-white animate-[pulse-score_0.5s_ease-out]"
-                      : "bg-gray-200 text-gray-400 animate-[pulse-score-bench_0.5s_ease-out]"
+                  isCounting
+                    ? "bg-white/15 text-white animate-[pulse-score_0.5s_ease-out]"
+                    : "bg-gray-200 text-gray-400 animate-[pulse-score-bench_0.5s_ease-out]"
                 )}
               >
-                {golfer.missedCut ? "MC" : formatScore(golfer.score)}
+                {formatScore(golfer.score)}
               </span>
-
-              {golfer.missedCut && isCounting && (
-                <span className="shrink-0 rounded-lg bg-white/15 px-2.5 py-1 text-sm font-bold font-mono">
-                  +{CUT_SCORE}
-                </span>
-              )}
             </div>
           )
         })}
