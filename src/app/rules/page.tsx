@@ -12,7 +12,7 @@ export const metadata: Metadata = {
       "How scoring works in Masters Madness: pick 9 golfers across 9 tiers, lowest combined score wins. Learn the tier system, tiebreakers, and payout structure.",
   },
 };
-import { getRulesContent, topPayoutStats, type PayoutRow } from "@/lib/db/settings";
+import { getRulesContent, topPayoutStats, parsePayoutAmount, type PayoutRow } from "@/lib/db/settings";
 import { getPoolBySlug, getPoolMembers, getPoolsForUser } from "@/lib/db/pools";
 import { CopyShareButton } from "@/components/ui/share-button";
 import { auth } from "@clerk/nextjs/server";
@@ -99,6 +99,15 @@ export default async function RulesPage({
       ? members.length * poolEntryFee
       : parseFloat((prizePoolLabel ?? "").replace(/[^0-9.]/g, "")) || 0;
   const { pct: topPayoutPct, dollars: topPayoutDollars } = topPayoutStats(effectivePayouts, prizePoolNum);
+
+  // Per-row percentages + estimated dollar amounts for the Payouts section
+  const payoutTotal = effectivePayouts.reduce((s, p) => s + parsePayoutAmount(p.amount), 0);
+  const payoutRows = effectivePayouts.map((row) => {
+    const amt = parsePayoutAmount(row.amount);
+    const pct = payoutTotal > 0 ? Math.round((amt / payoutTotal) * 100) : null;
+    const dollars = pct != null && prizePoolNum > 0 ? Math.round(prizePoolNum * (amt / payoutTotal)) : null;
+    return { ...row, pct, dollars };
+  });
 
   const shareUrl = pool
     ? `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://mastersmadness.com"}/pool/${pool.slug}`
@@ -248,11 +257,13 @@ export default async function RulesPage({
                   </div>
                 ) : null}
                 <div className="space-y-3">
-                  {rules.payouts.map((row) => (
+                  {payoutRows.map((row) => (
                     <PayoutRow
                       key={row.place}
                       place={row.place}
                       amount={row.amount}
+                      pct={row.pct}
+                      dollars={row.dollars}
                       highlight={row.highlight}
                     />
                   ))}
@@ -424,10 +435,14 @@ function RuleItem({
 function PayoutRow({
   place,
   amount,
+  pct,
+  dollars,
   highlight,
 }: {
   place: string;
   amount: string;
+  pct?: number | null;
+  dollars?: number | null;
   highlight?: boolean;
 }) {
   return (
@@ -437,9 +452,18 @@ function PayoutRow({
       }`}
     >
       <span className="font-semibold text-foreground">{place} Place</span>
-      <span className="font-mono font-bold text-lg text-foreground">
-        {amount}
-      </span>
+      <div className="flex items-baseline gap-2">
+        {pct != null ? (
+          <>
+            <span className="font-mono font-bold text-lg text-foreground">{pct}%</span>
+            <span className="font-mono text-sm text-muted">
+              {dollars != null ? `~$${dollars.toLocaleString()}` : amount}
+            </span>
+          </>
+        ) : (
+          <span className="font-mono font-bold text-lg text-foreground">{amount}</span>
+        )}
+      </div>
     </div>
   );
 }

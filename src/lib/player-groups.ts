@@ -8,6 +8,33 @@
 
 import { type PlayerData } from "@/data/players";
 
+/**
+ * Canonical tag config — emoji and Tailwind color classes for every group tag.
+ * Used by both the Research PlayerTable and the My Picks player cards.
+ */
+export const TAG_CONFIG: Record<string, { emoji: string; color: string }> = {
+  "Champ":     { emoji: "🏆", color: "bg-amber-100 text-amber-800" },
+  "LIV":       { emoji: "💰", color: "bg-rose-100 text-rose-700" },
+  "Lefty":     { emoji: "🤚", color: "bg-sky-100 text-sky-700" },
+  "Rookie":    { emoji: "⭐", color: "bg-purple-100 text-purple-700" },
+  "Amateur":   { emoji: "🎓", color: "bg-indigo-100 text-indigo-700" },
+  "35+":       { emoji: "👴", color: "bg-stone-100 text-stone-700" },
+  "Fan Fav":   { emoji: "🎉", color: "bg-pink-100 text-pink-700" },
+  "Euro Tour": { emoji: "🇪🇺", color: "bg-blue-100 text-blue-700" },
+  "Intl":      { emoji: "🌍", color: "bg-teal-100 text-teal-700" },
+};
+
+/**
+ * Convert a DB `group_tags` string array into renderable GroupTag objects.
+ * Tags with no matching config entry are silently dropped.
+ */
+export function tagsFromDb(groupTags: string[] | null): GroupTag[] {
+  if (!groupTags?.length) return [];
+  return groupTags
+    .map((t) => ({ name: t, ...(TAG_CONFIG[t] ?? { emoji: "", color: "" }) }))
+    .filter((t) => t.emoji);
+}
+
 export type GroupTag = {
   name: string;
   emoji: string;

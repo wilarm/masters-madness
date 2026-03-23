@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getPoolsForUser } from "@/lib/db/pools";
+import { getAllGolfers } from "@/lib/db/golfers";
 import { Suspense } from "react";
 import { PicksContent } from "@/components/picks/picks-content";
 
@@ -20,9 +21,12 @@ export default async function PicksPage({
     }
   }
 
+  // Fetch enriched golfer data server-side so picks cards reflect Research tab
+  const dbGolfers = await getAllGolfers();
+
   return (
     <Suspense>
-      <PicksContent />
+      <PicksContent dbGolfers={dbGolfers} />
     </Suspense>
   );
 }

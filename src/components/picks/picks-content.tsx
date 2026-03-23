@@ -3,11 +3,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { getTierColor, getTierLabel, calculateTrend } from "@/data/players";
+import { getTierColor, getTierLabel } from "@/data/players";
 import { getTierPlayers, DEMO_NUM_TIERS, DEMO_PLAYERS_PER_TIER } from "@/lib/tier-assignments";
 import { useWatchlist } from "@/lib/watchlist";
-import { getPlayerGroupTags } from "@/lib/player-groups";
+import { tagsFromDb, getPlayerGroupTags } from "@/lib/player-groups";
 import { cn } from "@/lib/utils";
+import type { GolferRow } from "@/lib/db/golfers";
 import {
   Lock,
   Check,
@@ -27,7 +28,18 @@ import {
   Pencil,
 } from "lucide-react";
 
-export function PicksContent() {
+/** Same normalization used in PlayerTable — strips diacritics for safe lookup */
+function normalize(s: string): string {
+  return s.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ø/gi, "o")
+    .replace(/æ/gi, "ae")
+    .replace(/ß/gi, "ss")
+    .toLowerCase()
+    .trim();
+}
+
+export function PicksContent({ dbGolfers = [] }: { dbGolfers?: GolferRow[] }) {
   const searchParams = useSearchParams();
   const poolSlug = searchParams.get("pool");
 
@@ -82,6 +94,13 @@ export function PicksContent() {
       })
       .catch(() => {});
   }, [poolSlug]);
+
+  // Normalized name → DB golfer map for enrichment lookups
+  const dbMap = useMemo(() => {
+    const m = new Map<string, GolferRow>();
+    for (const g of dbGolfers) m.set(normalize(g.name), g);
+    return m;
+  }, [dbGolfers]);
 
   const tierPlayers = useMemo(() => {
     return getTierPlayers(currentTier, playersPerTier)
@@ -209,16 +228,23 @@ export function PicksContent() {
                 .sort(([a], [b]) => Number(a) - Number(b))
                 .map(([tier, name]) => {
                   const player = getTierPlayers(Number(tier), playersPerTier).find((p) => p.name === name);
+                  const db = dbMap.get(normalize(name));
+                  const odds = db?.odds ?? player?.odds;
+                  const worldRank = db?.world_rank ?? player?.worldRank;
                   return (
                     <div key={tier} className="flex items-center gap-3 rounded-xl border border-border bg-bg-muted/50 p-3.5">
                       <span className={cn("flex-shrink-0 px-2 py-1 rounded-lg text-xs font-bold", getTierColor(Number(tier)))}>
                         T{tier}
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-foreground truncate">
                           {player?.country} {name}
                         </p>
-                        <p className="text-xs text-muted">{getTierLabel(Number(tier))}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-muted">{getTierLabel(Number(tier))}</p>
+                          {odds && <span className="text-xs font-mono text-muted/70">{odds}</span>}
+                          {worldRank && <span className="text-xs text-muted/60">OWGR #{worldRank}</span>}
+                        </div>
                       </div>
                     </div>
                   );
@@ -453,8 +479,26 @@ export function PicksContent() {
               {tierPlayers.map((player) => {
                 const isSelected = currentPick === player.name;
                 const isExpanded = expandedPlayer === player.name;
-                const trend = calculateTrend(player);
                 const watched = isWatchlisted(player.name);
+
+                // DB enrichment — merge live data over static fields
+                const db = dbMap.get(normalize(player.name));
+                const odds       = db?.odds        ?? player.odds;
+                const worldRank  = db?.world_rank  ?? player.worldRank;
+                const summary    = db?.summary     ?? player.summary    ?? "";
+                const bullCase   = db?.bull_case   ?? player.bullCase   ?? "";
+                const bearCase   = db?.bear_case   ?? player.bearCase   ?? "";
+                const recentForm = db?.recent_form ?? player.recentForm ?? "";
+                const appearances = db?.appearances  ?? player.mastersAppearances;
+                const bestFinish  = db?.best_finish  ?? player.bestMastersFinish;
+                const trend = db
+                  ? (db.starting_odds_rank != null && db.odds_rank != null
+                      ? db.starting_odds_rank - db.odds_rank
+                      : 0)
+                  : 0;
+                const tags = db?.group_tags
+                  ? tagsFromDb(db.group_tags)
+                  : getPlayerGroupTags(player);
 
                 return (
                   <Card
@@ -478,7 +522,7 @@ export function PicksContent() {
                             : "border-border hover:border-masters-green/50 hover:bg-masters-green-light"
                         )}
                       >
-                        {isSelected ? <Check className="h-5 w-5" /> : <span className="text-xs font-mono text-muted">#{player.currentRank}</span>}
+                        {isSelected ? <Check className="h-5 w-5" /> : <span className="text-xs font-mono text-muted">#{db?.odds_rank ?? player.currentRank}</span>}
                       </button>
 
                       {/* Player Info */}
@@ -495,7 +539,7 @@ export function PicksContent() {
                           >
                             <Star className={cn("h-3.5 w-3.5", watched && "fill-current")} />
                           </button>
-                          {getPlayerGroupTags(player).map((tag) => (
+                          {tags.map((tag) => (
                             <span
                               key={tag.name}
                               className={cn("inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold", tag.color)}
@@ -505,8 +549,8 @@ export function PicksContent() {
                           ))}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-muted">
-                          <span className="font-mono font-semibold">{player.odds}</span>
-                          <span>OWGR #{player.worldRank}</span>
+                          <span className="font-mono font-semibold">{odds}</span>
+                          <span>OWGR #{worldRank}</span>
                           {trend !== 0 && (
                             <span className={cn("flex items-center gap-0.5 font-bold", trend > 0 ? "text-success" : "text-danger")}>
                               {trend > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -529,28 +573,34 @@ export function PicksContent() {
                     {/* Expanded Scouting Report */}
                     {isExpanded && (
                       <div className="border-t border-border px-4 py-4 bg-bg-muted/30 space-y-3">
-                        <p className="text-sm text-foreground leading-relaxed">{player.summary}</p>
+                        {summary && (
+                          <p className="text-sm text-foreground leading-relaxed">{summary}</p>
+                        )}
 
                         <div className="grid sm:grid-cols-2 gap-3">
-                          <div className="rounded-lg bg-success/10 border border-success/20 p-3">
-                            <h5 className="text-xs font-bold text-success uppercase mb-1 flex items-center gap-1">
-                              <TrendingUp className="h-3 w-3" /> Bull Case
-                            </h5>
-                            <p className="text-sm text-foreground">{player.bullCase}</p>
-                          </div>
-                          <div className="rounded-lg bg-danger/10 border border-danger/20 p-3">
-                            <h5 className="text-xs font-bold text-danger uppercase mb-1 flex items-center gap-1">
-                              <TrendingDown className="h-3 w-3" /> Bear Case
-                            </h5>
-                            <p className="text-sm text-foreground">{player.bearCase}</p>
-                          </div>
+                          {bullCase && (
+                            <div className="rounded-lg bg-success/10 border border-success/20 p-3">
+                              <h5 className="text-xs font-bold text-success uppercase mb-1 flex items-center gap-1">
+                                <TrendingUp className="h-3 w-3" /> Bull Case
+                              </h5>
+                              <p className="text-sm text-foreground">{bullCase}</p>
+                            </div>
+                          )}
+                          {bearCase && (
+                            <div className="rounded-lg bg-danger/10 border border-danger/20 p-3">
+                              <h5 className="text-xs font-bold text-danger uppercase mb-1 flex items-center gap-1">
+                                <TrendingDown className="h-3 w-3" /> Bear Case
+                              </h5>
+                              <p className="text-sm text-foreground">{bearCase}</p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          <StatBlock label="Masters Best" value={player.bestMastersFinish} />
-                          <StatBlock label="2025 Result" value={player.masters2025} />
-                          <StatBlock label="Appearances" value={String(player.mastersAppearances)} />
-                          <StatBlock label="Recent Form" value={player.recentForm} small />
+                          <StatBlock label="Masters Best" value={bestFinish ?? "—"} />
+                          <StatBlock label="2025 Result" value={player.masters2025 ?? "—"} />
+                          <StatBlock label="Appearances" value={String(appearances ?? 0)} />
+                          <StatBlock label="Recent Form" value={recentForm || "—"} small />
                         </div>
                       </div>
                     )}

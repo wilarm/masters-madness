@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useWatchlist } from "@/lib/watchlist";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import type { GolferRow } from "@/lib/db/golfers";
+import { TAG_CONFIG } from "@/lib/player-groups";
 
 /** Strips diacritics and lowercases — handles Å→a, é→e, ø→o, æ→ae, etc.
  *  NFD handles most accents; ø/æ/ß are atomic and need explicit mapping. */
@@ -18,19 +19,6 @@ const normalize = (s: string) =>
     .replace(/ß/gi, "ss")
     .toLowerCase()
     .trim();
-
-// Tags config for rendering (maps DB string → emoji + color)
-const TAG_CONFIG: Record<string, { emoji: string; color: string }> = {
-  "Champ":     { emoji: "🏆", color: "bg-amber-100 text-amber-800" },
-  "LIV":       { emoji: "💰", color: "bg-rose-100 text-rose-700" },
-  "Lefty":     { emoji: "🤚", color: "bg-sky-100 text-sky-700" },
-  "Rookie":    { emoji: "⭐", color: "bg-purple-100 text-purple-700" },
-  "Amateur":   { emoji: "🎓", color: "bg-indigo-100 text-indigo-700" },
-  "35+":       { emoji: "👴", color: "bg-stone-100 text-stone-700" },
-  "Fan Fav":   { emoji: "🎉", color: "bg-pink-100 text-pink-700" },
-  "Euro Tour": { emoji: "🇪🇺", color: "bg-blue-100 text-blue-700" },
-  "Intl":      { emoji: "🌍", color: "bg-teal-100 text-teal-700" },
-};
 import {
   TrendingUp,
   TrendingDown,
