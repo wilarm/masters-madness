@@ -79,6 +79,11 @@ const ESPN_NAME_ALIASES: Record<string, string> = {
   "pierceson coody":               "Pierceson Coody",
 };
 
+/** Strip diacritics for fuzzy comparison (Å→a, é→e, etc.) */
+function normalizeName(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
 /** Resolves an ESPN display name to the canonical DB name.
  *  1. Checks the static alias map first (fast, exact).
  *  2. Falls back to fuzzy last-name matching against known DB names
@@ -88,16 +93,24 @@ function resolveGolferName(
   espnName: string,
   knownDbNames?: Set<string>
 ): { resolved: string; method: "exact" | "alias" | "fuzzy" | "unmatched" } {
-  const key = espnName.toLowerCase().trim();
+  // Normalize diacritics so Åberg === Aberg, etc.
+  const key = normalizeName(espnName);
 
-  // 1. Static alias map
+  // 1. Static alias map (keys are already normalized in the map above)
   if (ESPN_NAME_ALIASES[key]) {
     return { resolved: ESPN_NAME_ALIASES[key], method: "alias" };
   }
 
-  // 2. Exact match (will be confirmed by nameToId lookup, but return as-is)
+  // 2. Exact match after diacritic normalization
   if (!knownDbNames) {
     return { resolved: espnName, method: "exact" };
+  }
+
+  // Check if normalized key matches any DB name when both are normalized
+  for (const dbName of knownDbNames) {
+    if (normalizeName(dbName) === key) {
+      return { resolved: dbName, method: "exact" };
+    }
   }
 
   // 3. Fuzzy: last-name match — only safe when exactly one DB name shares the last name

@@ -8,6 +8,10 @@ import { useWatchlist } from "@/lib/watchlist";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import type { GolferRow } from "@/lib/db/golfers";
 
+/** Strips diacritics and lowercases — handles Å→a, é→e, etc. */
+const normalize = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
 // Tags config for rendering (maps DB string → emoji + color)
 const TAG_CONFIG: Record<string, { emoji: string; color: string }> = {
   "Champ":     { emoji: "🏆", color: "bg-amber-100 text-amber-800" },
@@ -84,14 +88,14 @@ export function PlayerTable({
   // Build a name → GolferRow map for O(1) lookups
   const dbMap = useMemo(() => {
     const m = new Map<string, GolferRow>();
-    for (const g of dbGolfers) m.set(g.name.toLowerCase().trim(), g);
+    for (const g of dbGolfers) m.set(normalize(g.name), g);
     return m;
   }, [dbGolfers]);
 
   // Merge static PlayerData with live DB enrichment
   const mergedPlayers = useMemo((): MergedPlayer[] =>
     PLAYERS.map((p): MergedPlayer => {
-      const db = dbMap.get(p.name.toLowerCase().trim());
+      const db = dbMap.get(normalize(p.name));
       // Season-long trend: Dec 31 baseline vs current odds_rank
       const dbTrend = db
         ? (db.starting_odds_rank != null && db.odds_rank != null
