@@ -21,6 +21,70 @@ import { getGolferNameToIdMap } from "@/lib/db/golfers";
 import { upsertScore } from "@/lib/db/scores";
 import { setCurrentEvent } from "@/lib/db/settings";
 
+/**
+ * ESPN name → canonical DB name aliases.
+ *
+ * ESPN sometimes uses different spellings, hyphenation, accents, or
+ * initials than what we seeded in the DB. Add entries here any time
+ * a player is getting skipped during the tournament. Keys are
+ * lowercase-trimmed ESPN names; values are the exact DB name.
+ *
+ * To diagnose: check the `skipped` count in cron logs and cross-reference
+ * with the ESPN payload to find unmatched names.
+ */
+const ESPN_NAME_ALIASES: Record<string, string> = {
+  // Hyphenation variants
+  "sungjae im":                    "Sung-Jae Im",
+  "sung jae im":                   "Sung-Jae Im",
+  "si-woo kim":                    "Si Woo Kim",
+  "min-woo lee":                   "Min Woo Lee",
+  "jj spaun":                      "J.J. Spaun",
+  "j.j spaun":                     "J.J. Spaun",
+
+  // Accent / diacritic variants
+  "jose maria olazabal":           "Jose Maria Olazabal",
+  "josé maría olazábal":           "Jose Maria Olazabal",
+  "joaquín niemann":               "Joaquin Niemann",
+  "sebastián muñoz":               "Sebastian Munoz",
+  "haotong li":                    "Haotong Li",
+  "sami välimäki":                 "Sami Valimaki",
+
+  // First-name / middle-name variants
+  "rory mcilroy":                  "Rory McIlroy",   // sometimes "McIlroy" vs "Mcilroy"
+  "ludvig åberg":                  "Ludvig Aberg",
+  "rasmus højgaard":               "Rasmus Hojgaard",
+  "nicolai højgaard":              "Nicolai Hojgaard",
+  "rasmus neergaard-petersen":     "Rasmus Neergaard-Petersen",
+
+  // Common abbreviation / display name variants
+  "matt fitzpatrick":              "Matt Fitzpatrick",
+  "matthew fitzpatrick":           "Matt Fitzpatrick",
+  "robert macintyre":              "Robert MacIntyre",
+  "bob macintyre":                 "Robert MacIntyre",
+  "cam smith":                     "Cameron Smith",
+  "cam young":                     "Cameron Young",
+  "alex norén":                    "Alex Noren",
+  "alex noren":                    "Alex Noren",
+  "sepp straka":                   "Sepp Straka",
+  "bryson dechambeau":             "Bryson DeChambeau",
+  "collin morikawa":               "Collin Morikawa",
+  "hideki matsuyama":              "Hideki Matsuyama",
+  "christiaan bezuidenhout":       "Christiaan Bezuidenhout",
+  "tom mckibbin":                  "Tom McKibbin",
+  "kristoffer reitan":             "Kristoffer Reitan",
+  "aldrich potgieter":             "Aldrich Potgieter",
+  "jayden schaper":                "Jayden Schaper",
+  "rasmus neergaard petersen":     "Rasmus Neergaard-Petersen",
+  "marco penge":                   "Marco Penge",
+  "pierceson coody":               "Pierceson Coody",
+};
+
+/** Resolves an ESPN display name to the canonical DB name. */
+function resolveGolferName(espnName: string): string {
+  const key = espnName.toLowerCase().trim();
+  return ESPN_NAME_ALIASES[key] ?? espnName;
+}
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -57,11 +121,16 @@ export async function GET(req: NextRequest) {
   let upserted = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const aliasResolved: string[] = [];
+  const skippedNames: string[] = [];
 
   for (const golfer of snapshot.golfers) {
-    const golferId = nameToId.get(golfer.name.toLowerCase().trim());
+    const resolvedName = resolveGolferName(golfer.name);
+    if (resolvedName !== golfer.name) aliasResolved.push(`${golfer.name}→${resolvedName}`);
+    const golferId = nameToId.get(resolvedName.toLowerCase().trim());
     if (!golferId) {
       skipped++;
+      skippedNames.push(golfer.name);
       continue;
     }
 
@@ -91,6 +160,8 @@ export async function GET(req: NextRequest) {
   console.log(
     `[cron/scores] event="${snapshot.eventName}" (${snapshot.eventId}) golfers=${snapshot.golfers.length} upserted=${upserted} skipped=${skipped} errors=${errors.length}`
   );
+  if (aliasResolved.length > 0) console.log(`[cron/scores] alias-resolved: ${aliasResolved.join(", ")}`);
+  if (skippedNames.length > 0) console.log(`[cron/scores] skipped-names (add to alias map if valid): ${skippedNames.slice(0, 20).join(", ")}`);
 
   return NextResponse.json({
     ok: true,
@@ -101,6 +172,8 @@ export async function GET(req: NextRequest) {
     golfers: snapshot.golfers.length,
     upserted,
     skipped,
+    skippedNames: skippedNames.length > 0 ? skippedNames.slice(0, 20) : undefined,
+    aliasResolved: aliasResolved.length > 0 ? aliasResolved : undefined,
     errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
   });
 }
