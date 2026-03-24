@@ -16,9 +16,10 @@ export const metadata: Metadata = {
     title: "2026 Masters Pool Picks & Player Research — AI-Powered Analysis",
     description:
       "Free AI-powered research tool for your 2026 Masters golf pool. Compare every player's odds, form, bull/bear case, and tier — pick smarter at Augusta National.",
-    type: "website",
+    type: "article",
     url: "https://mastersmadness.com/research",
     siteName: "Masters Madness",
+    modifiedTime: new Date().toISOString(),
   },
   twitter: {
     card: "summary_large_image",

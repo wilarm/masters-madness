@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
   description:
     "Pick 9 golfers across 9 tiers for the 2026 Masters Tournament. Live leaderboard, private pools, custom payouts — free to play. April 9–12 at Augusta National.",
+  alternates: {
+    canonical: "https://mastersmadness.com",
+  },
   openGraph: {
     title: "Masters Madness 2026 — Fantasy Golf Pool for Augusta",
     description:
