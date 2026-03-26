@@ -652,10 +652,10 @@ export function CommissionerDashboard({
                     id="venmo-link"
                     value={venmoLink}
                     onChange={(e) => setVenmoLink(e.target.value)}
-                    placeholder="https://venmo.com/u/yourname"
+                    placeholder="https://venmo.com/u/yourname or @yourname"
                   />
                   <p className="text-xs text-muted">
-                    Shared with unpaid members so they know where to send money.
+                    Shared with unpaid members so they know where to send money. For Venmo, you can just enter @yourname.
                   </p>
                 </div>
 

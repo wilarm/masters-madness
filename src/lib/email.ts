@@ -118,7 +118,9 @@ export async function sendPoolCreated({
     : "";
 
   const venmoNote = entryFee && venmoLink
-    ? `<p style="margin:0 0 8px;font-size:13px;color:#374151;">💸 <strong>Payment:</strong> Direct members to pay via <a href="${venmoLink}" style="color:#1a4731;">${venmoLink}</a></p>`
+    ? venmoLink.startsWith("@")
+      ? `<p style="margin:0 0 8px;font-size:13px;color:#374151;">💸 <strong>Payment:</strong> Direct members to pay via Venmo <strong>${venmoLink}</strong></p>`
+      : `<p style="margin:0 0 8px;font-size:13px;color:#374151;">💸 <strong>Payment:</strong> Direct members to pay via <a href="${venmoLink}" style="color:#1a4731;">${venmoLink}</a></p>`
     : "";
 
   const body = `
@@ -248,7 +250,9 @@ export async function sendPoolJoined({
       ? `<div style="background:#fefce8;border:1px solid #c9a84c40;border-radius:6px;padding:16px;margin-bottom:24px;">
           <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#92400e;">Entry Fee: $${entryFee}</p>
           <p style="margin:0;font-size:13px;color:#78350f;">Pay your entry fee to lock in your spot:
-            <a href="${venmoLink}" style="color:#1a4731;font-weight:600;">${venmoLink}</a>
+            ${venmoLink.startsWith("@")
+              ? `<strong style="color:#1a4731;">Venmo ${venmoLink}</strong>`
+              : `<a href="${venmoLink}" style="color:#1a4731;font-weight:600;">${venmoLink}</a>`}
           </p>
         </div>`
       : "";

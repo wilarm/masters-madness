@@ -25,6 +25,8 @@ import { redirect } from "next/navigation";
 import { ShareButton } from "@/components/ui/share-button";
 import { LeavePoolButton } from "@/components/pool/leave-pool-button";
 import { getPoolStandings } from "@/lib/scoring";
+import { ArrowRight } from "lucide-react";
+import { isVenmoHandle, formatPaymentLabel, formatPaymentAction } from "@/lib/payment-utils";
 
 // Tournament deadline: Thursday, April 9, 2026 5:00 AM MT (11:00 AM UTC)
 const PICKS_DEADLINE = new Date("2026-04-09T11:00:00Z");
@@ -288,6 +290,42 @@ export default async function StandingsPage({
               />
             </div>
 
+            {/* Payment pending banner */}
+            {currentMember && !currentMember.paid && entryFeeNum > 0 && (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 border border-amber-300">
+                    <DollarSign className="h-4 w-4 text-amber-600" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">
+                      Entry fee payment pending — ${entryFeeNum}
+                    </p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Your spot is reserved. Send your entry fee to the commissioner to confirm.
+                    </p>
+                  </div>
+                </div>
+                {venmoLink && (
+                  isVenmoHandle(venmoLink) ? (
+                    <span className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-100 border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900">
+                      {formatPaymentAction(venmoLink)}
+                    </span>
+                  ) : (
+                    <a
+                      href={venmoLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition-colors"
+                    >
+                      Pay Now
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
+                  )
+                )}
+              </div>
+            )}
+
             {/* Invite button + rules link + leave */}
             <div className="flex items-center gap-3 flex-wrap">
               {poolShareUrl && (
@@ -378,14 +416,20 @@ function OverviewTile({
         <p className="text-[10px] text-muted">{sublabel}</p>
       )}
       {venmoLink && (
-        <a
-          href={venmoLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] font-semibold text-masters-green hover:underline"
-        >
-          Pay via Venmo →
-        </a>
+        isVenmoHandle(venmoLink) ? (
+          <span className="text-[10px] font-semibold text-masters-green">
+            {formatPaymentLabel(venmoLink)}
+          </span>
+        ) : (
+          <a
+            href={venmoLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] font-semibold text-masters-green hover:underline"
+          >
+            {formatPaymentLabel(venmoLink)}
+          </a>
+        )
       )}
     </div>
   );

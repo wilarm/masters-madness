@@ -24,6 +24,7 @@ import { getPicksByUser } from "@/lib/db/picks";
 import { getUserPoolRole } from "@/lib/auth";
 import { getPoolState, picksVisible } from "@/lib/pool-state";
 import { JoinPoolButton } from "@/components/pool/join-pool-button";
+import { isVenmoHandle, formatPaymentAction } from "@/lib/payment-utils";
 
 export async function generateMetadata({
   params,
@@ -323,15 +324,21 @@ export default async function PoolPage({
               </div>
             </div>
             {typeof pool.config?.venmoLink === "string" && pool.config.venmoLink && (
-              <a
-                href={pool.config.venmoLink as string}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition-colors"
-              >
-                Pay Now
-                <ArrowRight className="h-3.5 w-3.5" />
-              </a>
+              isVenmoHandle(pool.config.venmoLink as string) ? (
+                <span className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-100 border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900">
+                  {formatPaymentAction(pool.config.venmoLink as string)}
+                </span>
+              ) : (
+                <a
+                  href={pool.config.venmoLink as string}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition-colors"
+                >
+                  Pay Now
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              )
             )}
           </div>
         )}

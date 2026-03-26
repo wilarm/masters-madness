@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { StartPoolButton } from "@/components/ui/start-pool-button";
 import { PoolSwitcher, type PoolStub } from "@/components/layout/pool-switcher";
 import { MoreMenu, type MoreMenuItem } from "@/components/layout/more-menu";
+import { CommissionerNudge } from "@/components/pool/commissioner-nudge";
 import {
   Trophy,
   BarChart3,
@@ -131,7 +132,8 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
+    <div className="sticky top-0 z-50">
+    <nav className="border-b border-border bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
 
@@ -287,5 +289,9 @@ export function Navbar() {
         )}
       </div>
     </nav>
+    {isCommish && activeSlug && (
+      <CommissionerNudge poolSlug={activeSlug} />
+    )}
+    </div>
   );
 }
